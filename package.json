@@ -1,0 +1,22 @@
+{
+  "name": "liteAuditor",
+  "version": "1.0.1",
+  "main": "liteAuditor.js",
+  "author": {
+    "name": "Paul Boulanger"
+  },
+  "private": true,
+  "scripts": {
+    "start": "node ./liteAuditor.js"
+  },
+  "dependencies": {
+    "axios": "^0.18.0",
+    "bignumber.js": "^7.2.1",
+    "events": "^3.0.0",
+    "fs": "0.0.1-security",
+    "jsonschema": "^1.2.4",
+    "ntrnetwork": "^2.8.18",
+    "path": "^0.12.7",
+    "ws": "^6.1.0"
+  }
+}
