@@ -18,9 +18,7 @@ validator.init()
 
         // Reconnecting Websocket connections to the Watchers
         try {
-            var WSObj = WSM.connectAugmentedNodeWS(validator.nodeId, workInProgress, completedTR);
-            var wsUTXO = WSObj.wsUTXO;
-            var wsAccount = WSObj.wsAccount;
+            WSM.connectAugmentedNodeWS(validator.nodeId, workInProgress, completedTR);
             garbageCollector.globalTimeout(workInProgress, timedOut, completedTR, validator.nodeId, WSM);
             garbageCollector.paymentTimeout(workInProgress, timedOut, validator.nodeId, WSM);
         } catch (error) {
