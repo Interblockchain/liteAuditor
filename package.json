@@ -1,11 +1,11 @@
 {
-  "name": "liteAuditor",
-  "version": "1.0.1",
+  "name": "liteauditor",
+  "version": "1.0.2",
   "main": "liteAuditor.js",
   "author": {
     "name": "Paul Boulanger"
   },
-  "private": true,
+  "license": "MIT",
   "scripts": {
     "start": "node ./liteAuditor.js"
   },

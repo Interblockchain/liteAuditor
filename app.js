@@ -3,11 +3,10 @@ const bodyParser = require('body-parser');            // to parse form body vari
 const cors = require('cors');
 const Routes = require("./routes.js");
 const routes = new Routes();
+const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
 const LiteAuditor = require("./liteAuditor.js").auditor;
 const broadcaster = require("./liteAuditor.js").broadcaster;
 const auditEvent = require("./liteAuditor.js").eventEmitter;
-const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
-
 
 //let url = "ws://pushpin:7999/augmentedNode/ws-validator";
 let url = "ws://138.197.169.38:7999/augmentedNode/ws-validator";
