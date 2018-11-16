@@ -24,7 +24,6 @@
  requiredConf         : Number of confirmations to track
  onlyReqConf          : Do we only issue responses when requiredConf is reached
 */
-const axios = require("axios");
 const schemasObj = require("./config/schemas");
 const objChecker = require('jsonschema').Validator;
 const v = new objChecker();
@@ -38,180 +37,11 @@ BigNumber.set({ DECIMAL_PLACES: 3, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 
 require("./config/confTable");
 
-// ########### Tendermint stuff ####################
-// const TenderVal = require('./tenderVal');
-// const tenderVal = new TenderVal();
-//###################################################
-
-// Use the fourth Redis record for the Stellar WAM.
-// var Redis = require('ioredis');
-// var redis = new Redis({
-//     port: environment.redisPort,   // Redis port
-//     host: environment.redisHost,   // Redis host
-//     family: 4,           // 4 (IPv4) or 6 (IPv6)
-//     db: environment.redisDb
-// });
-
-//###### TODO: put all that stuff in a config file or use existing values #
-const IBCaugmentedNodeURL = "http://206.189.191.247:8000/";
-//###########################################################################
-
 class Validator {
     constructor() { }
 
     async init() {
-        let externalIP = await this.getIP();
-        this.validatorAddress = "http://" + externalIP + ":8099/api/v1/receiveEvents";
-        //console.log(this.validatorAddress);
         await this.getNodeId();
-    }
-
-    async subscribeToEvents(transferRequest) {
-        await this.watchEvent(transferRequest.transactionID,
-            transferRequest.sourceAddress,
-            transferRequest.sourceNetwork.toUpperCase(),
-            transferRequest.onlyReqConf);
-
-        // setTimeout(async () => {
-        await this.watchEvent(transferRequest.transactionID,
-            transferRequest.destinationAddress,
-            transferRequest.destinationNetwork.toUpperCase(),
-            transferRequest.onlyReqConf);
-        // }, 3000);
-        return
-    }
-
-    async unsubscribeToEvents(workInProgress, element) {
-        // console.log("Testing unsubscribe:");
-        // console.log(workInProgress.transferRequest);
-        //Add a check that the address is not present in another workInProgress
-        let present = await this.addressInWorkInProgress(workInProgress, element, workInProgress[element].transferRequest.sourceAddress);
-        if (!present) {
-            await this.stopWatchingEvent(workInProgress[element].transferRequest.transactionID,
-                workInProgress[element].transferRequest.sourceAddress,
-                workInProgress[element].transferRequest.sourceNetwork.toUpperCase(),
-                workInProgress[element].transferRequest.onlyReqConf);
-        }
-
-        present = await this.addressInWorkInProgress(workInProgress, element, workInProgress[element].transferRequest.destinationAddress);
-        if (!present) {
-            await this.stopWatchingEvent(workInProgress[element].transferRequest.transactionID,
-                workInProgress[element].transferRequest.destinationAddress,
-                workInProgress[element].transferRequest.destinationNetwork.toUpperCase(),
-                workInProgress[element].transferRequest.onlyReqConf);
-        }
-        return
-    }
-
-    // Method subscribing to the distpatcher in order to watch for events 
-    // pertaining to an address on a network. In here we also do all the verifications
-    // and formatting 
-    async watchEvent(transactionID, Address, Network, onlyReqConf) {
-        try {
-            let network = this.getNetworkSymbol(Network);
-
-            const authOptions = {
-                method: 'POST',
-                url: IBCaugmentedNodeURL + network + "net/subscribe",
-                headers: {
-                    'apikey': '42ad9bf1-1706-4104-901f-8d59d927dc5d',
-                    'Content-Type': 'application/json',
-                },
-                data: {
-                    transactionID: transactionID,
-                    clientURL: this.validatorAddress,
-                    network: network,
-                    address: Address,
-                    requiredConf: confTable[network],
-                    onlyReqConf: onlyReqConf,
-                    action: "subscribe"
-                }
-            };
-
-            let responseObj = authOptions;
-            // Request to dispatcher
-            console.log("1) OUT dispatcher METHOD: " + authOptions.method);
-            console.log("1) OUT dispatcherURL: " + authOptions.url);
-            //console.log("1) OUT requestObj headers: ", JSON.stringify(authOptions.headers, null, 2)); 
-            //console.log("1) OUT requestObj: ", JSON.stringify(authOptions.data, null, 2)); 
-            await axios(authOptions)
-                .then(function (response) {
-                    console.log(`${Date().toString().substring(0, 24)} 2) Axios Response  ${JSON.stringify(response.data, null, 2)}`);
-                })
-                .catch((error) => {
-                    console.log(`${Date().toString().substring(0, 24)} validator, WatchEvent: axios ${error}`);
-                    console.log("error.name: " + error.name);
-                    console.log("error.statusCode: " + error.statusCode);
-                    console.log("error.message: " + JSON.stringify(error.message, null, 2));
-                    let statusCode;
-                    if (error.response) {
-                        responseObj = error.response.data;      // custom error
-                        statusCode = (error.response.status) ? error.response.status : 500;
-                    } else {
-                        responseObj.error = "server error";     // node error
-                        statusCode = 500;
-                    }
-                    throw { name: `${Date().toString().substring(0, 24)} validator, watchEvent: server error`, statusCode: statusCode, message: responseObj };
-                });
-        } catch (error) {
-            console.log(`${Date().toString().substring(0, 24)} 3) ${error}`);
-            throw { name: `${Date().toString().substring(0, 24)} validator, watchEvent: `, statusCode: 500, message: "Axios communication error" };
-        };
-    }
-
-    async stopWatchingEvent(transactionID, Address, Network, onlyReqConf) {
-        try {
-            let network = this.getNetworkSymbol(Network);
-
-            const authOptions = {
-                method: 'POST',
-                url: IBCaugmentedNodeURL + network + "net/unsubscribe",
-                headers: {
-                    'apikey': '42ad9bf1-1706-4104-901f-8d59d927dc5d',
-                    'Content-Type': 'application/json',
-                },
-                data: {
-                    transactionID: transactionID,
-                    clientURL: this.validatorAddress,
-                    network: network,
-                    address: Address,
-                    requiredConf: confTable[network],
-                    onlyReqConf: onlyReqConf,
-                    action: "unsubscribe"
-                }
-            };
-
-            let responseObj = authOptions;
-            // Request to dispatcher
-            console.log("1) OUT dispatcher METHOD: " + authOptions.method);
-            console.log("1) OUT dispatcherURL: " + authOptions.url);
-            //console.log("1) OUT requestObj headers: ", JSON.stringify(authOptions.headers, null, 2)); 
-            //console.log("1) OUT requestObj: ", JSON.stringify(authOptions.data, null, 2)); 
-            await axios(authOptions)
-                .then(function (response) {
-                    console.log(`${Date().toString().substring(0, 24)} 2) Axios Response  ${JSON.stringify(response.data, null, 2)}`);
-                })
-                .catch(function (error) {
-                    console.log(`${Date().toString().substring(0, 24)} 2) Axios error  ${JSON.stringify(error.response, null, 2)}`);
-                    console.log(`${Date().toString().substring(0, 24)} validator, stopWatchingEvent: axios ${error}`);
-                    console.log("error.name: " + error.name);
-                    console.log("error.statusCode: " + error.statusCode);
-                    console.log("error.message: " + JSON.stringify(error.message, null, 2));
-                    let statusCode;
-                    if (error.response) {
-                        responseObj = error.response.data;      // custom error
-                        statusCode = (error.response.status) ? error.response.status : 500;
-                    } else {
-                        responseObj.error = "server error";     // node error
-                        statusCode = 500;
-                    }
-                    throw { name: `${Date().toString().substring(0, 24)} validator, stopWatchingEvent: server error`, statusCode: statusCode, message: responseObj }
-                });
-        }
-        catch (error) {
-            console.log(`${Date().toString().substring(0, 24)} 3) ${error}`)
-            throw { name: `${Date().toString().substring(0, 24)} validator, stopWatchingEvent: `, statusCode: 400, message: error };
-        };
     }
 
     saveTransferRequest(workInProgress, transferRequest) {
@@ -246,71 +76,6 @@ class Validator {
         };
         workInProgress.push(transferInfo);
     }
-
-    // redisStoreTransferRequest(transferRequest) {
-    //     // Only use sourceKey for storing in Redis because it is chosen unique in
-    //     // checkDuplicate for every TR
-    //     const sourceNetwork = this.getNetworkSymbol(transferRequest.sourceNetwork);
-    //     const amount = this.convertAmount(transferRequest.amount, transferRequest.ticker);
-    //     const sourceAddress = (sourceNetwork == "TETH" || sourceNetwork == "ETH") ? transferRequest.sourceAddress.toLowerCase() : transferRequest.sourceAddress;
-    //     if (sourceNetwork == "TETH" || sourceNetwork == "ETH") {
-    //         var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from.toLowerCase() : 0;
-    //     } else {
-    //         var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from : 0;
-    //     }
-    //     const key = `${sourceNetwork}:${sourceAddress}:${from}:${amount}`;
-
-    //     let value = {
-    //         timestamp: Date.now(),
-    //         transferRequest: transferRequest
-    //     };
-    //     redis.set(key, JSON.stringify(value))
-    //         .catch((error) => {
-    //             throw { name: `Redis set error`, statusCode: 500, message: error }
-    //         })
-    // }
-
-    // redisDeleteTransferRequest(transferRequest) {
-    //     // Only use sourceKey for storing in Redis because it is chosen unique in
-    //     // checkDuplicate for every TR
-    //     const sourceNetwork = this.getNetworkSymbol(transferRequest.sourceNetwork);
-    //     const amount = this.convertAmount(transferRequest.amount, transferRequest.ticker);
-    //     const sourceAddress = (sourceNetwork == "TETH" || sourceNetwork == "ETH") ? transferRequest.sourceAddress.toLowerCase() : transferRequest.sourceAddress;
-    //     if (sourceNetwork == "TETH" || sourceNetwork == "ETH") {
-    //         var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from.toLowerCase() : 0;
-    //     } else {
-    //         var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from : 0;
-    //     }
-    //     const key = `${sourceNetwork}:${sourceAddress}:${from}:${amount}`;
-    //     redis.del(key)
-    //         .catch((error) => {
-    //             throw { name: `Redis del error`, statusCode: 500, message: error }
-    //         })
-    // }
-
-    // async restartValidator(workInProgress) {
-    //     let keys = await redis.keys("*")
-    //         .catch((error) => {
-    //             content.error = error;
-    //             content.success = false;
-    //             console.log(`${Date().toString().substring(0, 24)} Validator: restartValidator ${err}`);
-    //             throw { name: "Redis keys error", statusCode: 500, message: content }
-    //         });
-    //     keys.forEach(async (key, i) => {
-    //         //Each key should have just one member
-    //         let stored = await redis.get(key.toString())
-    //             .catch((error) => {
-    //                 content.error = error;
-    //                 content.success = false;
-    //                 console.log(`${Date().toString().substring(0, 24)} Validator: restartValidator ${err}`);
-    //                 throw { name: "Redis get error", statusCode: 500, message: content }
-    //             });
-    //         let storedObj = JSON.parse(stored);
-    //         //What to do with the timestamp? Or if the transaction is already passed?
-    //         await this.processTransferRequest(workInProgress, storedObj.transferRequest)
-    //         //this.saveTransferRequest(workInProgress, storedObj.transferRequest)
-    //     });
-    // }
 
     checkRequestDuplicate(workInProgress, transferRequest) {
 
@@ -435,14 +200,8 @@ class Validator {
             if (requestFinished) {
                 let requestAudited = this.auditRequest(workInProgress[element]);
                 if (requestAudited) {
-                    // //Dispatch the request to the block in tendermint
-                    // if (workInProgress[element].transferRequest.brdcTender) {
-                    //     tenderVal.broadcastValidatedRequest(workInProgress[element]);
-                    // }
                     requestFinished = false;
                 } else {
-                    //The amounts are not consistent, should return an error message and
-                    //contact police
                     console.log("Audit Failed, amounts do not match!");
                 }
                 let auditDetails ={
@@ -472,14 +231,8 @@ class Validator {
                 if (requestFinished) {
                     let requestAudited = this.auditRequest(workInProgress[element]);
                     if (requestAudited) {
-                        //Dispatch the request to the block in tendermint
-                        // if (workInProgress[element].transferRequest.brdcTender) {
-                        //     tenderVal.broadcastValidatedRequest(workInProgress[element]);
-                        // }
                         requestFinished = false;        
                     } else {
-                        //The amounts are not consistent, should return an error message and
-                        //contact police
                         console.log("Audit Failed, amounts do not match!");
                     }
                     let auditDetails ={
@@ -495,7 +248,7 @@ class Validator {
             
             }
         }
-        return -1; //If it did not return before, no element was found.
+        return -1;
     }
 
     getBlockchainType(Network) {
@@ -551,17 +304,6 @@ class Validator {
             default:
                 console.log("Network not recognized!");
                 throw { name: `${Date().toString().substring(0, 24)} validator, getNetworkSymbol: Network not recognized`, message: "Network not recognized!" };
-        }
-    }
-
-    async getIP() {
-        try {
-            let response = await axios.get("http://api.ipify.org/");
-            console.log("External IP address: " + response.data);
-            return response.data
-        } catch (err) {
-            console.error(error);
-            throw { name: `${Date().toString().substring(0, 24)} validator, getIP: Axios error`, message: err };
         }
     }
 

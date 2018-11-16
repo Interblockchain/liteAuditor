@@ -3,14 +3,15 @@ const Validator = require("./validator.js").validator;
 const validator = new Validator();
 require("./config/confTable");
 
-
 class WebsocketManagement {
 
-    constructor() { }
+    constructor(url, apikey) { 
+        this.url = url;
+        this.apikey = apikey;
+    }
 
     connectAugmentedNodeWS(nodeId, workInProgress, completedTR) {
-        //this.wsan = new WebSocket("ws://pushpin:7999/augmentedNode/ws-validator", { headers: { "apiKey": "42ad9bf1-1706-4104-901f-8d59d927dc5d" } });
-        this.wsan = new WebSocket("ws://138.197.169.38:7999/augmentedNode/ws-validator", { headers: { "apiKey": "42ad9bf1-1706-4104-901f-8d59d927dc5d" } });
+        this.wsan = new WebSocket(this.url, { headers: { "apiKey": this.apikey } });
         this.wsan.onopen = (e) => {
             this.onOpen(e, nodeId);
         }
