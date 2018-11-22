@@ -31,21 +31,21 @@ class liteAuditor {
                         console.log("Entering Response:");
                         console.log(response);
                         validator.processEvent(this.workInProgress, response)
-                        .then(async (element) => {
-                            console.log("Element: " + element);
-                            if (element >= 0) {
-                                this.completedTR.push(this.workInProgress[element]);
-                                let presentSource = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
-                                let presentDest = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
-                                let sourNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
-                                let destNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
-                                await WSM.sendActionToAugmentedNode(this.workInProgress[element].transferRequest, confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
-                                this.workInProgress.splice(element, 1);
-                            }
-                        })
-                        .catch((error) => {
-                            console.log("Error: wsan message " + error.name + " " + error.message);
-                        });
+                            .then(async (element) => {
+                                console.log("Element: " + element);
+                                if (element >= 0) {
+                                    this.completedTR.push(this.workInProgress[element]);
+                                    let presentSource = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
+                                    let presentDest = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
+                                    let sourNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
+                                    let destNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
+                                    await this.WSM.sendActionToAugmentedNode(this.workInProgress[element].transferRequest, confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
+                                    this.workInProgress.splice(element, 1);
+                                }
+                            })
+                            .catch((error) => {
+                                console.log("Error: wsan message " + error.name + " " + error.message);
+                            });
 
                     }
 
@@ -64,7 +64,10 @@ class liteAuditor {
                         try {
                             let notDuplicate = await validator.checkRequestDuplicate(this.workInProgress, transaction)
                             if (notDuplicate) {
-                                this.WSM.sendActionToAugmentedNode(transaction, "subscribe", validator.nodeId, true, true)
+                                console.log("Sending subscription to Augmented node")
+                                let sourNet = validator.getNetworkSymbol(transaction.sourceNetwork);
+                                let destNet = validator.getNetworkSymbol(transaction.destinationNetwork);
+                                await this.WSM.sendActionToAugmentedNode(transaction, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
                                 validator.saveTransferRequest(this.workInProgress, transaction);
                             } else { console.log("Transfer Request is a duplicate!") }
                         } catch (error) {
