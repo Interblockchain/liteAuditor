@@ -1,17 +1,19 @@
 const Validator = require("./validator.js").validator;
 const auditEvent = require('./validator.js').eventEmitter;
 const validator = new Validator();
-const WebSocketManagement = require('./WebSocketManagement');
+const WebSocketManagement = require('wsmanagement').WS;
+const ANevent = require('wsmanagement').eventEmitter;
 const GarbageCollector = require('./GarbageCollector');
-const garbageCollector = new GarbageCollector();
+const garbageCollector = new GarbageCollector(auditEvent);
 const Broadcaster = require('ntrnetwork').Broadcaster;
 const broadcaster = new Broadcaster(0x015);
 const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
 require("./config/confTable");
 
 class liteAuditor {
-    constructor(url, apiKey, _workInProgress, _timedOut, _completedTR) {
-        this.WSM = new WebSocketManagement(url, apiKey);
+    constructor(_url, _apiKey, _workInProgress, _timedOut, _completedTR) {
+        this.url = _url;
+        this.apiKey = _apiKey;
         this.workInProgress = _workInProgress ? _workInProgress : [];
         this.timedOut = _timedOut ? _timedOut : [];
         this.completedTR = _completedTR ? _completedTR : [];
@@ -22,7 +24,32 @@ class liteAuditor {
             .then(() => {
                 // Reconnecting Websocket connections to the Watchers
                 try {
-                    this.WSM.connectAugmentedNodeWS(validator.nodeId, this.workInProgress, this.completedTR);
+                    this.WSM = new WebSocketManagement(this.url, this.apiKey, validator.nodeId);
+                    this.WSM.connectAugmentedNodeWS();
+
+                    var processResponse = (response) => {
+                        console.log("Entering Response:");
+                        console.log(response);
+                        validator.processEvent(this.workInProgress, response)
+                        .then(async (element) => {
+                            console.log("Element: " + element);
+                            if (element >= 0) {
+                                this.completedTR.push(this.workInProgress[element]);
+                                let presentSource = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
+                                let presentDest = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
+                                let sourNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
+                                let destNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
+                                await WSM.sendActionToAugmentedNode(this.workInProgress[element].transferRequest, confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
+                                this.workInProgress.splice(element, 1);
+                            }
+                        })
+                        .catch((error) => {
+                            console.log("Error: wsan message " + error.name + " " + error.message);
+                        });
+
+                    }
+
+                    ANevent.addListener('response', processResponse);
                     garbageCollector.globalTimeout(this.workInProgress, this.timedOut, this.completedTR, validator.nodeId, this.WSM);
                     garbageCollector.paymentTimeout(this.workInProgress, this.timedOut, validator.nodeId, this.WSM);
                 } catch (error) {
@@ -47,8 +74,8 @@ class liteAuditor {
                     if (message_code === MESSAGE_CODES.AUDIT) {
                         try {
                             console.log("Received Audit");
-                            console.log(transaction);
-                            auditEvent.emit('audit', transaction);
+                            //console.log(transaction);
+                            auditEvent.emit('ntraudit', transaction);
                         } catch (error) {
                             console.log("Error: " + error.name + " " + error.message);
                         }
@@ -57,7 +84,7 @@ class liteAuditor {
             });
     }
 
-    get state(){
+    get state() {
         let _state = {
             workInProgress: this.workInProgress,
             timedOut: this.timedOut,
@@ -66,7 +93,7 @@ class liteAuditor {
         return _state;
     }
 
-    get ANWS(){
+    get ANWS() {
         return this.WSM
     }
 }

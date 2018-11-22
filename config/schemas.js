@@ -25,7 +25,9 @@ module.exports.transferRequest = {
         "ticker": { "type": "string" },
         "amount": { "type": "string" },
         "appID": { "type": "string" },
-        "tokenContractAddress": { "type": "string" }
+        "tokenContractAddress": { "type": "string" },
+        "nodeID": {"type": "string"},
+        "ip": {"type": "string"}
     },
     "additionalProperties": false,
     "required": ["transactionID", "sourceNetwork", "sourceAddress", "amount",

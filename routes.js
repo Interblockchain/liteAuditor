@@ -128,7 +128,6 @@ class routes {
         const queueLength = broadcaster.peersQueue.length;
         const queueLength2 = broadcaster.peersQueue.filter((o) => o.ts <= Date.now()).length;
         let reply = {
-            version: environment.version,
             status: `${Date().toString().substring(0, 24)} Total nodes in DPT: ${broadcaster.dptSize}, open slots: ${broadcaster.OpenSlots}, queue: ${queueLength} / ${queueLength2}`,
             slots: {
                 open: broadcaster.OpenSlots,

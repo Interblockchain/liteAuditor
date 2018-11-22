@@ -3,7 +3,9 @@ const validator = new Validator();
 
 class garbageCollector {
 
-    constructor() { }
+    constructor(eventEmitter) {
+        this._eventEmitter = eventEmitter;
+    }
 
     async globalTimeout(workInProgress, timedOut, completedTR, nodeId, WSM) {
         setInterval(async () => {
@@ -15,6 +17,11 @@ class garbageCollector {
                     let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
                     let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
                     await WSM.sendActionToAugmentedNode(element.transferRequest, "unsubscribe", nodeId, !presentSource, !presentDest);
+                    let auditDetails ={
+                        status: false,
+                        TR: workInProgress[index]
+                    };
+                    this._eventEmitter.emit('audit', auditDetails);
                     workInProgress.splice(index, 1);
                 }
             });
@@ -44,6 +51,11 @@ class garbageCollector {
                     let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
                     let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
                     await WSM.sendActionToAugmentedNode(element.transferRequest, "unsubscribe", nodeId, !presentSource, !presentDest);
+                    let auditDetails ={
+                        status: false,
+                        TR: workInProgress[index]
+                    };
+                    this._eventEmitter.emit('audit', auditDetails);
                     workInProgress.splice(index, 1);
                 }
             });
