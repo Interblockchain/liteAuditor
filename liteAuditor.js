@@ -64,7 +64,6 @@ class liteAuditor {
                         try {
                             let notDuplicate = await validator.checkRequestDuplicate(this.workInProgress, transaction)
                             if (notDuplicate) {
-                                console.log("Sending subscription to Augmented node")
                                 let sourNet = validator.getNetworkSymbol(transaction.sourceNetwork);
                                 let destNet = validator.getNetworkSymbol(transaction.destinationNetwork);
                                 await this.WSM.sendActionToAugmentedNode(transaction, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)

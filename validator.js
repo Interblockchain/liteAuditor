@@ -204,7 +204,7 @@ class Validator {
                 } else {
                     console.log("Audit Failed, amounts do not match!");
                 }
-                let auditDetails ={
+                let auditDetails = {
                     status: requestAudited,
                     TR: workInProgress[element]
                 };
@@ -231,11 +231,11 @@ class Validator {
                 if (requestFinished) {
                     let requestAudited = this.auditRequest(workInProgress[element]);
                     if (requestAudited) {
-                        requestFinished = false;        
+                        requestFinished = false;
                     } else {
                         console.log("Audit Failed, amounts do not match!");
                     }
-                    let auditDetails ={
+                    let auditDetails = {
                         status: requestAudited,
                         TR: workInProgress[element]
                     };
@@ -245,7 +245,7 @@ class Validator {
                 }
             } else {
                 console.log(`${Date().toString().substring(0, 24)} Transaction not associated with any Request.`);
-            
+
             }
         }
         return -1;
@@ -301,6 +301,10 @@ class Validator {
             case "TXRP":
             case "XRP":
                 return "TXRP"
+            case "EOS NETWORK":
+            case "EOS":
+            case "TEOS":
+                return "TEOS"
             default:
                 console.log("Network not recognized!");
                 throw { name: `${Date().toString().substring(0, 24)} validator, getNetworkSymbol: Network not recognized`, message: "Network not recognized!" };
