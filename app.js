@@ -44,6 +44,15 @@ router.get("/trids", (req, res) => {
     routes.tridsGET(req, res, liteAuditor.state);
 });
 
+router.post("/request", async (req, res) => {
+    routes.request(req, res, liteAuditor);
+});
+
+router.post("/receiveEvents", async (req, res) => {
+    routes.receiveEvents(req, res, liteAuditor);
+});
+
+
 // Start the Express Client listening server
 app.listen(port);
 console.log('LiteAuditor server started on port: ' + port);

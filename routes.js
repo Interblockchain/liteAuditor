@@ -171,6 +171,36 @@ class routes {
         };
         res.status(200).send(reply);
     }
+
+    async request(req, res, liteAuditor) {
+        try {
+            console.log("Received Express Request");
+            console.log("api: " + JSON.stringify(req.body, null, 2));
+            let response = await liteAuditor.processRequest(req.body);
+            res.status(response.status).send(response.message);
+        } catch (error) {
+            console.log("Error: " + error.name + " " + error.message);
+            let statusCode = (error.statusCode) ? error.statusCode : 500;
+            let errorObj = error.message;
+            errorObj.error = error.name;
+            res.status(statusCode).json(errorObj);
+        }
+    }
+
+    async receiveEvents(req, res, liteAuditor) {
+        try {
+            console.log("Received Express Request");
+            console.log("api: " + JSON.stringify(req.body, null, 2));
+            let response = await liteAuditor.processReply(req.body);
+            res.status(response.status).send(response.message);
+        } catch (error) {
+            console.log("Error: " + error.name + " " + error.message);
+            let statusCode = (error.statusCode) ? error.statusCode : 500;
+            let errorObj = error.message;
+            errorObj.error = error.name;
+            res.status(statusCode).json(errorObj);
+        }
+    }
 }
 
 module.exports = routes;
