@@ -6,17 +6,18 @@ const ANevent = require('wsmanagement').eventEmitter;
 const GarbageCollector = require('./GarbageCollector');
 const garbageCollector = new GarbageCollector(auditEvent);
 const Broadcaster = require('ntrnetwork').Broadcaster;
-const broadcaster = new Broadcaster(0x015);
 const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
 require("./config/confTable");
 
 class liteAuditor {
-    constructor(_url, _apiKey, _workInProgress, _timedOut, _completedTR) {
+    constructor( ntrchannel, _url, _apiKey, _workInProgress, _timedOut, _completedTR) {
         this.url = _url;
         this.apiKey = _apiKey;
         this.workInProgress = _workInProgress ? _workInProgress : [];
         this.timedOut = _timedOut ? _timedOut : [];
         this.completedTR = _completedTR ? _completedTR : [];
+        this.broadcaster = new Broadcaster(ntrchannel);
+
     }
 
     auditNetwork() {
@@ -57,7 +58,7 @@ class liteAuditor {
                 }
 
                 // Receive the transactions on the network 
-                broadcaster.subscribe(async (message_code, transaction) => {
+                this.broadcaster.subscribe(async (message_code, transaction) => {
                     console.log("Received Event");
                     console.log(transaction);
                     if (message_code === MESSAGE_CODES.TX) {
@@ -102,6 +103,5 @@ class liteAuditor {
 
 module.exports = {
     auditor: liteAuditor,
-    eventEmitter: auditEvent,
-    broadcaster: broadcaster
+    eventEmitter: auditEvent
 };

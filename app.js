@@ -5,20 +5,19 @@ const Routes = require("./routes.js");
 const routes = new Routes();
 const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
 const LiteAuditor = require("./liteAuditor.js").auditor;
-const broadcaster = require("./liteAuditor.js").broadcaster;
 const auditEvent = require("./liteAuditor.js").eventEmitter;
 
 //let url = "ws://pushpin:7999/augmentedNode/ws-validator";
 let url = "ws://138.197.169.38:7999/augmentedNode/ws-validator";
 let apiKey = "42ad9bf1-1706-4104-901f-8d59d927dc5d";
-const liteAuditor = new LiteAuditor(url, apiKey);
+const liteAuditor = new LiteAuditor(0x015, url, apiKey);
 liteAuditor.auditNetwork();
 
 // Broadcast of an auditing event  
 var sendAudit = function (event) {
     console.log("Result of Audit:");
     console.log(event);
-    broadcaster.publish(MESSAGE_CODES.AUDIT, event);
+    liteAuditor.broadcaster.publish(MESSAGE_CODES.AUDIT, event);
 }
 auditEvent.addListener('audit', sendAudit);
 
@@ -33,13 +32,13 @@ app.use('/api/v1', router);                               // express will use th
 let port = 8099;
 
 router.get("/status", (req, res) => {
-    routes.statusGET(req, res, liteAuditor.ANWS.wsan, broadcaster, liteAuditor.state);
+    routes.statusGET(req, res, liteAuditor.ANWS.wsan, liteAuditor.broadcaster, liteAuditor.state);
 });
 router.delete("/status", (req, res) => {
     routes.statusDEL(req, res, liteAuditor.ANWS.wsan, liteAuditor.state);
 });
 router.get("/peers", (req, res) => {
-    routes.peersGET(req, res, broadcaster);
+    routes.peersGET(req, res, liteAuditor.broadcaster);
 });
 router.get("/trids", (req, res) => {
     routes.tridsGET(req, res, liteAuditor.state);
