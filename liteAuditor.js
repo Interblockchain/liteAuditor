@@ -78,7 +78,7 @@ class liteAuditor {
                         try {
                             console.log("Received Audit");
                             //console.log(transaction);
-                            auditEvent.emit('ntraudit', transaction);
+                            //auditEvent.emit('ntraudit', transaction);
                         } catch (error) {
                             console.log("Error: " + error.name + " " + error.message);
                         }
