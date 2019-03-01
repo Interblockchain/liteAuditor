@@ -60,7 +60,7 @@ module.exports.event = {
         "blockDate": { "type": "string" },
         "blockNumber": { "type": "string" },
         "txHash": { "type": "string" },
-        "nbConf": { "type": "string" },
+        "nbConf": { "type": "number" },
         "addresses" : { "$ref": "/Addresses"},
         "addressFrom": { "type": "string" },
         "tokenContractAddress": { "type": "string" }
