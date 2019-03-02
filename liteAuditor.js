@@ -51,18 +51,19 @@ class liteAuditor {
                     }
 
                     ANevent.addListener('response', processResponse);
-                    garbageCollector.globalTimeout(this.workInProgress, this.timedOut, this.completedTR, validator.nodeId, this.WSM);
-                    garbageCollector.paymentTimeout(this.workInProgress, this.timedOut, validator.nodeId, this.WSM);
+                    garbageCollector.globalTimeout(this.workInProgress, this.timedOut, this.completedTR, confTable, this.WSM);
+                    garbageCollector.paymentTimeout(this.workInProgress, this.timedOut, confTable, this.WSM);
                 } catch (error) {
                     console.log("Error with WS or garbage collection: " + error.name + " " + error.message);
                 }
 
                 // Receive the transactions on the network 
                 this.broadcaster.subscribe(async (message_code, transaction) => {
-                    console.log("Received Event");
-                    console.log(transaction);
+
                     if (message_code === MESSAGE_CODES.TX) {
                         try {
+                            console.log("Received TR");
+                            console.log(transaction);
                             let notDuplicate = await validator.checkRequestDuplicate(this.workInProgress, transaction)
                             if (notDuplicate) {
                                 let sourNet = validator.getNetworkSymbol(transaction.sourceNetwork);
@@ -76,7 +77,7 @@ class liteAuditor {
                     }
                     if (message_code === MESSAGE_CODES.AUDIT) {
                         try {
-                            console.log("Received Audit");
+                            console.log(`\n${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received Audit event: Status= ${transaction.status}, TRID= ${transaction.TR.transferRequest.transactionID}`);
                             //console.log(transaction);
                             //auditEvent.emit('ntraudit', transaction);
                         } catch (error) {

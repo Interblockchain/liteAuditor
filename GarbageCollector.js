@@ -7,7 +7,7 @@ class garbageCollector {
         this._eventEmitter = eventEmitter;
     }
 
-    async globalTimeout(workInProgress, timedOut, completedTR, nodeId, WSM) {
+    async globalTimeout(workInProgress, timedOut, completedTR, confTable, WSM) {
         setInterval(async () => {
             workInProgress.forEach(async (element, index) => {
                 let elapsed = Date.now() - Date.parse(element.timestamp);
@@ -16,7 +16,9 @@ class garbageCollector {
                     timedOut.push({ timestamp: Date.now(), TR: element });
                     let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
                     let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
-                    await WSM.sendActionToAugmentedNode(element.transferRequest, "unsubscribe", nodeId, !presentSource, !presentDest);
+                    let sourNet = validator.getNetworkSymbol(element.transferRequest.sourceNetwork);
+                    let destNet = validator.getNetworkSymbol(element.transferRequest.destinationNetwork);
+                    await WSM.sendActionToAugmentedNode(element.transferRequest, confTable, sourNet, destNet,  "unsubscribe", !presentSource, !presentDest);
                     let auditDetails ={
                         status: false,
                         TR: workInProgress[index]
@@ -41,7 +43,7 @@ class garbageCollector {
             });
         }, 5 * 60 * 1000);
     }
-    async paymentTimeout(workInProgress, timedOut, nodeId, WSM) {
+    async paymentTimeout(workInProgress, timedOut, confTable, WSM) {
         setInterval(async () => {
             workInProgress.forEach(async (element, index) => {
                 let elapsed = Date.now() - Date.parse(element.timestamp);
@@ -50,7 +52,9 @@ class garbageCollector {
                     timedOut.push({ timestamp: Date.now(), TR: element });
                     let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
                     let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
-                    await WSM.sendActionToAugmentedNode(element.transferRequest, "unsubscribe", nodeId, !presentSource, !presentDest);
+                    let sourNet = validator.getNetworkSymbol(element.transferRequest.sourceNetwork);
+                    let destNet = validator.getNetworkSymbol(element.transferRequest.destinationNetwork);
+                    await WSM.sendActionToAugmentedNode(element.transferRequest, confTable, sourNet, destNet,  "unsubscribe", !presentSource, !presentDest);
                     let auditDetails ={
                         status: false,
                         TR: workInProgress[index]
