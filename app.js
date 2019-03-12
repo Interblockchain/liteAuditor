@@ -10,7 +10,7 @@ const auditEvent = require("./liteAuditor.js").eventEmitter;
 //let url = "ws://pushpin:7999/augmentedNode/ws-validator";
 let url = "ws://138.197.169.38:7999/augmentedNode/ws-validator";
 let apiKey = "42ad9bf1-1706-4104-901f-8d59d927dc5d";
-const liteAuditor = new LiteAuditor(0x015, url, apiKey);
+const liteAuditor = new LiteAuditor(0x015, url, apiKey, false);
 liteAuditor.auditNetwork();
 
 // Broadcast of an auditing event  

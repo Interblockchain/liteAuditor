@@ -38,7 +38,9 @@ BigNumber.set({ DECIMAL_PLACES: 3, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 require("./config/confTable");
 
 class Validator {
-    constructor() { }
+    constructor(debug) {
+        this._debug = debug ? debug : false;
+     }
 
     async init() {
         await this.getNodeId();
@@ -198,7 +200,7 @@ class Validator {
             }
             workInProgress[element].sourceNbConf = eventObj.nbConf;
             requestFinished = this.checkRequestComplete(workInProgress[element]);
-            debug ? console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
+            this._debug ? console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
             if (requestFinished) {
                 let requestAudited = this.auditRequest(workInProgress[element]);
                 if (requestAudited) {
@@ -229,7 +231,7 @@ class Validator {
                 }
                 workInProgress[element].destinationNbConf = eventObj.nbConf;
                 requestFinished = this.checkRequestComplete(workInProgress[element]);
-                debug ? console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
+                this._debug ? console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
                 if (requestFinished) {
                     let requestAudited = this.auditRequest(workInProgress[element]);
                     if (requestAudited) {

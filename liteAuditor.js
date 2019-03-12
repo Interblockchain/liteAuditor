@@ -1,6 +1,5 @@
 const Validator = require("./validator.js").validator;
 const auditEvent = require('./validator.js').eventEmitter;
-const validator = new Validator();
 const WebSocketManagement = require('wsmanagement').WS;
 const ANevent = require('wsmanagement').eventEmitter;
 const GarbageCollector = require('./GarbageCollector');
@@ -10,36 +9,37 @@ const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
 require("./config/confTable");
 
 class liteAuditor {
-    constructor(ntrchannel, _url, _apiKey, _workInProgress, _timedOut, _completedTR) {
+    constructor(ntrchannel, _url, _apiKey, _workInProgress, _timedOut, _completedTR, debug) {
         this.url = _url;
         this.apiKey = _apiKey;
         this.workInProgress = _workInProgress ? _workInProgress : [];
         this.timedOut = _timedOut ? _timedOut : [];
         this.completedTR = _completedTR ? _completedTR : [];
         this.broadcaster = new Broadcaster(ntrchannel);
-
+        this._debug = debug? debug : false;
+        this.validator = new Validator(debug);
     }
 
     auditNetwork() {
-        validator.init()
+        this.validator.init()
             .then(() => {
                 // Reconnecting Websocket connections to the Watchers
                 try {
-                    this.WSM = new WebSocketManagement(this.url, this.apiKey, validator.nodeId);
+                    this.WSM = new WebSocketManagement(this.url, this.apiKey, this.validator.nodeId, this._debug);
                     this.WSM.connectAugmentedNodeWS();
 
                     var processResponse = (response) => {
-                        debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Entering Response:`) : null;
-                        debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(response)}`) : null;
-                        validator.processEvent(this.workInProgress, response)
+                        this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Entering Response:`) : null;
+                        this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(response)}`) : null;
+                        this.validator.processEvent(this.workInProgress, response)
                             .then(async (element) => {
                                 console.log("Element: " + element);
                                 if (element >= 0) {
                                     this.completedTR.push(this.workInProgress[element]);
-                                    let presentSource = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
-                                    let presentDest = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
-                                    let sourNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
-                                    let destNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
+                                    let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
+                                    let presentDest = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
+                                    let sourNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
+                                    let destNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
                                     await this.WSM.sendActionToAugmentedNode(this.workInProgress[element].transferRequest, confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
                                     this.workInProgress.splice(element, 1);
                                 }
@@ -49,7 +49,6 @@ class liteAuditor {
                             });
 
                     }
-
                     ANevent.addListener('response', processResponse);
                     garbageCollector.globalTimeout(this.workInProgress, this.timedOut, this.completedTR, confTable, this.WSM);
                     garbageCollector.paymentTimeout(this.workInProgress, this.timedOut, confTable, this.WSM);
@@ -62,14 +61,14 @@ class liteAuditor {
 
                     if (message_code === MESSAGE_CODES.TX) {
                         try {
-                            debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received TR via ntrnetwork}`) : null;
-                            debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
-                            let notDuplicate = await validator.checkRequestDuplicate(this.workInProgress, transaction)
+                            this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received TR via ntrnetwork}`) : null;
+                            this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
+                            let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, transaction)
                             if (notDuplicate) {
-                                let sourNet = validator.getNetworkSymbol(transaction.sourceNetwork);
-                                let destNet = validator.getNetworkSymbol(transaction.destinationNetwork);
+                                let sourNet = this.validator.getNetworkSymbol(transaction.sourceNetwork);
+                                let destNet = this.validator.getNetworkSymbol(transaction.destinationNetwork);
                                 await this.WSM.sendActionToAugmentedNode(transaction, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
-                                validator.saveTransferRequest(this.workInProgress, transaction);
+                                this.validator.saveTransferRequest(this.workInProgress, transaction);
                             } else { console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
                         } catch (error) {
                             console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error for TX: ${error.name} ${error.message}`);
@@ -90,17 +89,17 @@ class liteAuditor {
 
     async processRequest(request) {
         let response = {};
-        let notDuplicate = await validator.checkRequestDuplicate(this.workInProgress, request);
+        let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, request);
         if (notDuplicate) {
-            validator.saveTransferRequest(this.workInProgress, request);
+            this.validator.saveTransferRequest(this.workInProgress, request);
             // Broadcast and process the transferRequest to all neighbour nodes
             this.broadcaster.publish(MESSAGE_CODES.TX, request);
             request.brdcTender = true;
             //Save transferRequest in Redis for restart
             // validator.redisStoreTransferRequest(request)
             request.onlyReqConf = true;
-            let sourNet = validator.getNetworkSymbol(request.sourceNetwork);
-            let destNet = validator.getNetworkSymbol(request.destinationNetwork);
+            let sourNet = this.validator.getNetworkSymbol(request.sourceNetwork);
+            let destNet = this.validator.getNetworkSymbol(request.destinationNetwork);
             await this.WSM.sendActionToAugmentedNode(request, confTable, sourNet, destNet, "subscribe", true, true)
             response.status = 200;
             response.message = "Transfer request succesfully treated";
@@ -127,24 +126,24 @@ class liteAuditor {
     }
 
     async processReply(reply) {
-        debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:processReply] Received Reply`) : null;
-        debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:processREply] api: ${JSON.stringify(reply, null, 2)}`) : null;
+        this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:processReply] Received Reply`) : null;
+        this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:processREply] api: ${JSON.stringify(reply, null, 2)}`) : null;
         let response = {};
-        await validator.processEvent(this.workInProgress, reply)
+        await this.validator.processEvent(this.workInProgress, reply)
             .then(async (element) => {
                 response.status = 200;
                 response.message = "Reply succesful!";
                 if (element >= 0) {
                     this.completedTR.push(this.workInProgress[element]);
-                    let presentSource = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
-                    let presentDest = await validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
-                    let sourNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
-                    let destNet = validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
+                    let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
+                    let presentDest = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
+                    let sourNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
+                    let destNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
                     await WSM.sendActionToAugmentedNode(this.workInProgress[element], confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
                     this.workInProgress.splice(element, 1);
                     // } else {
                     //     //Unsubscribe to the WAS
-                    //     validator.unsubscribeToEvents(this.workInProgress, element)
+                    //     this.validator.unsubscribeToEvents(this.workInProgress, element)
                     //         .then(() => {
                     //             //Then delete the request from the workInProgress and set the boolean to false
                     //             this.workInProgress.splice(element, 1);
@@ -183,5 +182,5 @@ class liteAuditor {
 module.exports = {
     auditor: liteAuditor,
     eventEmitter: auditEvent,
-    validator: validator
+    validator: this.validator
 };
