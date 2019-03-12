@@ -86,7 +86,7 @@ class Validator {
             responseObj.errors = [];
             for (let i in validationParams.errors) {
                 responseObj.errors.push(validationParams.errors[i].property + " " + validationParams.errors[i].message);
-                console.log("Validator: transferRequest validation error " + i + ": " + validationParams.errors[i].property + " " + validationParams.errors[i].message);
+                console.log(`${Date().toString().substring(0, 24)} [validator:checkRequestDuplicate] transferRequest validation error ${i}: ${validationParams.errors[i].property} ${validationParams.errors[i].message}`);
             }
             throw { name: `${Date().toString().substring(0, 24)} validator, checkRequestDuplicate: validation error`, statusCode: 400, message: responseObj }
         }
@@ -109,9 +109,11 @@ class Validator {
             const sdElement = workInProgress.findIndex(element => element.sourceKey === destKey);
             const ddElement = workInProgress.findIndex(element => element.destKey === destKey);
             const dsElement = workInProgress.findIndex(element => element.destKey === sourceKey);
+            //Checking only in workInProgress to make sure TRID is unique (should we extend this to completedTR?)
+            const tridElement = workInProgress.findIndex(element => element.transferRequest.transactionID === transferRequest.transactionID);
 
-            //Check that the request does not possess a duplicate key before doing anything
-            if ((ssElement < 0) && (sdElement < 0) && (ddElement < 0) && (dsElement < 0)) {
+            //Check that the request does not possess a duplicate key or TRID before doing anything
+            if ((ssElement < 0) && (sdElement < 0) && (ddElement < 0) && (dsElement < 0) && (tridElement < 0)) {
                 return true
             } else {
                 return false
@@ -158,7 +160,7 @@ class Validator {
             responseObj.errors = [];
             for (let i in validationParams.errors) {
                 responseObj.errors.push(validationParams.errors[i].property + " " + validationParams.errors[i].message);
-                console.log("Validator: watcherEvent validation error " + i + ": " + validationParams.errors[i].property + " " + validationParams.errors[i].message);
+                console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] watcherEvent validation error ${i}: ${validationParams.errors[i].property} ${validationParams.errors[i].message}`);
             }
             throw { name: `${Date().toString().substring(0, 24)} validator, processEvent: validation error`, statusCode: 400, message: responseObj }
         }
@@ -185,7 +187,7 @@ class Validator {
         //console.log("Key source: " + key);
         let element = workInProgress.findIndex(element => element.sourceKey === key);
         if (element >= 0) {
-            console.log("This is a source transaction");
+            console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Received source transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
             if (workInProgress[element].sourceTxHash === "") {
                 workInProgress[element].sourceTxHash = eventObj.txHash;
                 workInProgress[element].sourceAmount = eventObj.addresses[0].amount;
@@ -196,13 +198,13 @@ class Validator {
             }
             workInProgress[element].sourceNbConf = eventObj.nbConf;
             requestFinished = this.checkRequestComplete(workInProgress[element]);
-            console.log("Request finished? " + requestFinished);
+            debug ? console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
             if (requestFinished) {
                 let requestAudited = this.auditRequest(workInProgress[element]);
                 if (requestAudited) {
                     requestFinished = false;
                 } else {
-                    console.log("Audit Failed, amounts do not match!");
+                    console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Audit Failed, amounts do not match!`);
                 }
                 let auditDetails = {
                     status: requestAudited,
@@ -216,7 +218,7 @@ class Validator {
             //console.log("Key dest: " + key);
             element = workInProgress.findIndex(element => element.destKey === key);
             if (element >= 0) {
-                console.log("This is a destination transaction.");
+                console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Received a destination transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
                 if (workInProgress[element].destinationTxHash === "") {
                     workInProgress[element].destinationTxHash = eventObj.txHash;
                     workInProgress[element].destinationAmount = eventObj.addresses[0].amount.toString();
@@ -227,25 +229,24 @@ class Validator {
                 }
                 workInProgress[element].destinationNbConf = eventObj.nbConf;
                 requestFinished = this.checkRequestComplete(workInProgress[element]);
-                console.log("Request finished? " + requestFinished);
+                debug ? console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
                 if (requestFinished) {
                     let requestAudited = this.auditRequest(workInProgress[element]);
                     if (requestAudited) {
                         requestFinished = false;
                     } else {
-                        console.log("Audit Failed, amounts do not match!");
+                        console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Audit Failed, amounts do not match!`);
                     }
                     let auditDetails = {
                         status: requestAudited,
                         TR: workInProgress[element]
                     };
-                    console.log("Emitting event audit");
+                    // console.log("Emitting event audit");
                     eventEmitter.emit('audit', auditDetails);
                     return element
                 }
             } else {
-                console.log(`${Date().toString().substring(0, 24)} Transaction not associated with any Request.`);
-
+                console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Received transaction not associated with any Request.`);
             }
         }
         return -1;
@@ -270,7 +271,7 @@ class Validator {
             case "TEOS":
                 return "Account";
             default:
-                console.log("Network not recognized!");
+                console.log(`${Date().toString().substring(0, 24)} [validator:getBlockchainType] Network not recognized!`);
                 throw { name: `${Date().toString().substring(0, 24)} validator, getBlockchainType: Network not recognized`, statusCode: 400, message: "Network not recognized!" };
         }
     }
@@ -306,7 +307,7 @@ class Validator {
             case "TEOS":
                 return "TEOS"
             default:
-                console.log("Network not recognized!");
+                console.log(`${Date().toString().substring(0, 24)} [validator:getNetworkSymbol] Network not recognized!`);
                 throw { name: `${Date().toString().substring(0, 24)} validator, getNetworkSymbol: Network not recognized`, message: "Network not recognized!" };
         }
     }
