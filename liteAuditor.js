@@ -16,7 +16,7 @@ class liteAuditor {
         this.timedOut = _timedOut ? _timedOut : [];
         this.completedTR = _completedTR ? _completedTR : [];
         this.broadcaster = new Broadcaster(ntrchannel);
-        this._debug = debug? debug : false;
+        this._debug = debug ? debug : false;
         this.validator = new Validator(debug);
     }
 
@@ -35,7 +35,7 @@ class liteAuditor {
                             .then(async (element) => {
                                 console.log("Element: " + element);
                                 if (element >= 0) {
-                                    this.completedTR.push(this.workInProgress[element]);
+                                    this.completedTR.push({ timestamp: Date.now(), TR: this.workInProgress[element] });
                                     let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
                                     let presentDest = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
                                     let sourNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
@@ -134,7 +134,7 @@ class liteAuditor {
                 response.status = 200;
                 response.message = "Reply succesful!";
                 if (element >= 0) {
-                    this.completedTR.push(this.workInProgress[element]);
+                    this.completedTR.push({ timestamp: Date.now(), TR: this.workInProgress[element] });
                     let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
                     let presentDest = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
                     let sourNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
