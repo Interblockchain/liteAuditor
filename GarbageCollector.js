@@ -1,5 +1,6 @@
 const Validator = require("./validator.js").validator;
 const validator = new Validator();
+const translib = new(require('translib'))();
 
 class garbageCollector {
 
@@ -16,8 +17,8 @@ class garbageCollector {
                     timedOut.push({ timestamp: Date.now(), TR: element });
                     let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
                     let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
-                    let sourNet = validator.getNetworkSymbol(element.transferRequest.sourceNetwork);
-                    let destNet = validator.getNetworkSymbol(element.transferRequest.destinationNetwork);
+                    let sourNet = translib.getNetworkSymbol(element.transferRequest.sourceNetwork);
+                    let destNet = translib.getNetworkSymbol(element.transferRequest.destinationNetwork);
                     await WSM.sendActionToAugmentedNode(element.transferRequest, confTable, sourNet, destNet,  "unsubscribe", !presentSource, !presentDest);
                     let auditDetails ={
                         status: false,
@@ -52,8 +53,8 @@ class garbageCollector {
                     timedOut.push({ timestamp: Date.now(), TR: element });
                     let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
                     let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
-                    let sourNet = validator.getNetworkSymbol(element.transferRequest.sourceNetwork);
-                    let destNet = validator.getNetworkSymbol(element.transferRequest.destinationNetwork);
+                    let sourNet = translib.getNetworkSymbol(element.transferRequest.sourceNetwork);
+                    let destNet = translib.getNetworkSymbol(element.transferRequest.destinationNetwork);
                     await WSM.sendActionToAugmentedNode(element.transferRequest, confTable, sourNet, destNet,  "unsubscribe", !presentSource, !presentDest);
                     let auditDetails ={
                         status: false,

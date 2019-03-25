@@ -27,13 +27,11 @@
 const schemasObj = require("./config/schemas");
 const objChecker = require('jsonschema').Validator;
 const v = new objChecker();
-const BigNumber = require('bignumber.js');
 const fs = require('fs');
 const path = require('path');
+const translib = new(require('translib'))();
 var events = require('events');
 var eventEmitter = new events.EventEmitter();
-
-BigNumber.set({ DECIMAL_PLACES: 3, ROUNDING_MODE: BigNumber.ROUND_DOWN });
 
 require("./config/confTable");
 
@@ -47,9 +45,9 @@ class Validator {
     }
 
     saveTransferRequest(workInProgress, transferRequest) {
-        const sourceNetwork = this.getNetworkSymbol(transferRequest.sourceNetwork);
-        const destNetwork = this.getNetworkSymbol(transferRequest.destinationNetwork);
-        const amount = this.convertAmount(transferRequest.amount, transferRequest.ticker);
+        const sourceNetwork = translib.getNetworkSymbol(transferRequest.sourceNetwork);
+        const destNetwork = translib.getNetworkSymbol(transferRequest.destinationNetwork);
+        const amount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
         const sourceAddress = (sourceNetwork == "TETH" || sourceNetwork == "ETH") ? transferRequest.sourceAddress.toLowerCase() : transferRequest.sourceAddress;
         const destinationAddress = (destNetwork == "TETH" || destNetwork == "ETH") ? transferRequest.destinationAddress.toLowerCase() : transferRequest.destinationAddress;
         if (sourceNetwork == "TETH" || sourceNetwork == "ETH") {
@@ -57,11 +55,11 @@ class Validator {
         } else {
             var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from : "0";
         }
-        const sourceKey = `${sourceNetwork}:${sourceAddress}:${from}:${amount}`;
-        const destKey = `${destNetwork}:${destinationAddress}:0:${amount}`;
+        const sourceKey = `${sourceNetwork}:${sourceAddress}:${from}:${amount}:${transferRequest.ticker}`;
+        const destKey = `${destNetwork}:${destinationAddress}:0:${amount}:${transferRequest.ticker}`;
 
         const transferInfo = {
-            timestamp: Date().toString().substring(0, 24),
+            timestamp: translib.logTime(),
             sourceKey: sourceKey,
             destKey: destKey,
             transferRequest: transferRequest,
@@ -88,14 +86,14 @@ class Validator {
             responseObj.errors = [];
             for (let i in validationParams.errors) {
                 responseObj.errors.push(validationParams.errors[i].property + " " + validationParams.errors[i].message);
-                console.log(`${Date().toString().substring(0, 24)} [validator:checkRequestDuplicate] transferRequest validation error ${i}: ${validationParams.errors[i].property} ${validationParams.errors[i].message}`);
+                console.log(`${translib.logTime()} [validator:checkRequestDuplicate] transferRequest validation error ${i}: ${validationParams.errors[i].property} ${validationParams.errors[i].message}`);
             }
-            throw { name: `${Date().toString().substring(0, 24)} validator, checkRequestDuplicate: validation error`, statusCode: 400, message: responseObj }
+            throw { name: `${translib.logTime()} validator, checkRequestDuplicate: validation error`, statusCode: 400, message: responseObj }
         }
 
-        const sourceNetwork = this.getNetworkSymbol(transferRequest.sourceNetwork);
-        const destNetwork = this.getNetworkSymbol(transferRequest.destinationNetwork);
-        const amount = this.convertAmount(transferRequest.amount, transferRequest.ticker);
+        const sourceNetwork = translib.getNetworkSymbol(transferRequest.sourceNetwork);
+        const destNetwork = translib.getNetworkSymbol(transferRequest.destinationNetwork);
+        const amount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
         const sourceAddress = (sourceNetwork == "TETH" || sourceNetwork == "ETH") ? transferRequest.sourceAddress.toLowerCase() : transferRequest.sourceAddress;
         const destinationAddress = (destNetwork == "TETH" || destNetwork == "ETH") ? transferRequest.destinationAddress.toLowerCase() : transferRequest.destinationAddress;
         if (sourceNetwork == "TETH" || sourceNetwork == "ETH") {
@@ -103,8 +101,8 @@ class Validator {
         } else {
             var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from : "0";
         }
-        const sourceKey = `${sourceNetwork}:${sourceAddress}:${from}:${amount}`;
-        const destKey = `${destNetwork}:${destinationAddress}:0:${amount}`;
+        const sourceKey = `${sourceNetwork}:${sourceAddress}:${from}:${amount}:${transferRequest.ticker}`;
+        const destKey = `${destNetwork}:${destinationAddress}:0:${amount}:${transferRequest.ticker}`;
 
         try {
             const ssElement = workInProgress.findIndex(element => element.sourceKey === sourceKey);
@@ -123,7 +121,7 @@ class Validator {
         } catch (err) {
             responseObj.success = false;
             responseObj.errors = err;
-            throw { name: `${Date().toString().substring(0, 24)} validator, checkRequestDuplicate: findIndex error `, statusCode: 400, message: responseObj }
+            throw { name: `${translib.logTime()} validator, checkRequestDuplicate: findIndex error `, statusCode: 400, message: responseObj }
         };
     }
 
@@ -153,7 +151,6 @@ class Validator {
     }
 
     async processEvent(workInProgress, eventObj) {
-
         let responseObj = eventObj;
         v.addSchema(schemasObj.addresses, "/Addresses");
         let validationParams = v.validate(eventObj, schemasObj.event);
@@ -162,9 +159,9 @@ class Validator {
             responseObj.errors = [];
             for (let i in validationParams.errors) {
                 responseObj.errors.push(validationParams.errors[i].property + " " + validationParams.errors[i].message);
-                console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] watcherEvent validation error ${i}: ${validationParams.errors[i].property} ${validationParams.errors[i].message}`);
+                console.log(`${translib.logTime()} [validator:processEvent] watcherEvent validation error ${i}: ${validationParams.errors[i].property} ${validationParams.errors[i].message}`);
             }
-            throw { name: `${Date().toString().substring(0, 24)} validator, processEvent: validation error`, statusCode: 400, message: responseObj }
+            throw { name: `${translib.logTime()} validator, processEvent: validation error`, statusCode: 400, message: responseObj }
         }
 
         //Test if this transaction is a source or destination transaction
@@ -185,11 +182,11 @@ class Validator {
             from = (eventObj.addressFrom && eventObj.from != "none") ? eventObj.addressFrom : "0";
             address = addressTo;
         }
-        let key = `${eventObj.network.toUpperCase()}:${address}:${from}:${amount}`;
+        let key = `${eventObj.network.toUpperCase()}:${address}:${from}:${amount}:${eventObj.ticker}`;
         //console.log("Key source: " + key);
         let element = workInProgress.findIndex(element => element.sourceKey === key);
         if (element >= 0) {
-            console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Received source transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
+            console.log(`${translib.logTime()} [validator:processEvent] Received source transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
             if (workInProgress[element].sourceTxHash === "") {
                 workInProgress[element].sourceTxHash = eventObj.txHash;
                 workInProgress[element].sourceAmount = eventObj.addresses[0].amount;
@@ -200,13 +197,13 @@ class Validator {
             }
             workInProgress[element].sourceNbConf = eventObj.nbConf;
             requestFinished = this.checkRequestComplete(workInProgress[element]);
-            this._debug ? console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
+            this._debug ? console.log(`${translib.logTime()} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
             if (requestFinished) {
                 let requestAudited = this.auditRequest(workInProgress[element]);
                 if (requestAudited) {
                     requestFinished = false;
                 } else {
-                    console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Audit Failed, amounts do not match!`);
+                    console.log(`${translib.logTime()} [validator:processEvent] Audit Failed, amounts do not match!`);
                 }
                 let auditDetails = {
                     status: requestAudited,
@@ -216,11 +213,11 @@ class Validator {
                 return element;
             }
         } else {
-            key = `${eventObj.network.toUpperCase()}:${address}:0:${amount}`;
+            key = `${eventObj.network.toUpperCase()}:${address}:0:${amount}:${eventObj.ticker}`;
             //console.log("Key dest: " + key);
             element = workInProgress.findIndex(element => element.destKey === key);
             if (element >= 0) {
-                console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Received a destination transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
+                console.log(`${translib.logTime()} [validator:processEvent] Received a destination transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
                 if (workInProgress[element].destinationTxHash === "") {
                     workInProgress[element].destinationTxHash = eventObj.txHash;
                     workInProgress[element].destinationAmount = eventObj.addresses[0].amount.toString();
@@ -231,13 +228,13 @@ class Validator {
                 }
                 workInProgress[element].destinationNbConf = eventObj.nbConf;
                 requestFinished = this.checkRequestComplete(workInProgress[element]);
-                this._debug ? console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
+                this._debug ? console.log(`${translib.logTime()} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
                 if (requestFinished) {
                     let requestAudited = this.auditRequest(workInProgress[element]);
                     if (requestAudited) {
                         requestFinished = false;
                     } else {
-                        console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Audit Failed, amounts do not match!`);
+                        console.log(`${translib.logTime()} [validator:processEvent] Audit Failed, amounts do not match!`);
                     }
                     let auditDetails = {
                         status: requestAudited,
@@ -248,70 +245,10 @@ class Validator {
                     return element
                 }
             } else {
-                console.log(`${Date().toString().substring(0, 24)} [validator:processEvent] Received transaction not associated with any Request.`);
+                console.log(`${translib.logTime()} [validator:processEvent] Received transaction not associated with any Request.`);
             }
         }
         return -1;
-    }
-
-    getBlockchainType(Network) {
-        switch (Network.toUpperCase()) {
-            case "TBTC":
-            case "BTC":
-            case "TLTC":
-            case "LTC":
-            case "BCH":
-            case "TBCH":
-            case "TETH":
-            case "ETH":
-                return "UTXO";
-            case "TXLM":
-            case "XLM":
-            case "TXRP":
-            case "XRP":
-            case "EOS":
-            case "TEOS":
-                return "Account";
-            default:
-                console.log(`${Date().toString().substring(0, 24)} [validator:getBlockchainType] Network not recognized!`);
-                throw { name: `${Date().toString().substring(0, 24)} validator, getBlockchainType: Network not recognized`, statusCode: 400, message: "Network not recognized!" };
-        }
-    }
-
-    getNetworkSymbol(inputNetwork) {
-        switch (inputNetwork.toUpperCase()) {
-            case "ETHEREUM NETWORK":
-            case "TETH":
-            case "ETH":
-                return "TETH";
-            case "BITCOIN NETWORK":
-            case "TBTC":
-            case "BTC":
-                return "TBTC";
-            case "LITECOIN NETWORK":
-            case "TLTC":
-            case "LTC":
-                return "TLTC";
-            case "BITCOIN CASH NETWORK":
-            case "TBCH":
-            case "BCH":
-                return "TBCH";
-            case "STELLAR NETWORK":
-            case "TXLM":
-            case "XLM":
-                return "TXLM";
-            case "RIPPLE NETWORK":
-            case "TXRP":
-            case "XRP":
-                return "TXRP"
-            case "EOS NETWORK":
-            case "EOS":
-            case "TEOS":
-                return "TEOS"
-            default:
-                console.log(`${Date().toString().substring(0, 24)} [validator:getNetworkSymbol] Network not recognized!`);
-                throw { name: `${Date().toString().substring(0, 24)} validator, getNetworkSymbol: Network not recognized`, message: "Network not recognized!" };
-        }
     }
 
     async getNodeId() {
@@ -323,47 +260,10 @@ class Validator {
             //console.log("Read: " + this.nodeId);
         } catch (err) {
             // File does not exist
-            this.nodeId = this.uuidv4();
+            this.nodeId = translib.uuidv4();
             fs.writeFileSync(file, this.nodeId);
             //console.log("Generating nodeId: " + this.nodeId);
         }
-    }
-
-    uuidv4() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
-
-    convertAmount(amount, ticker) {
-        //console.log(" Amount: " + amount + " ticker: " + ticker);
-
-        let value = new BigNumber(amount);
-        if (!value.isFinite() || value.isZero()) {
-            throw { name: "convertAmount", message: "Amount is zero or not finite." }
-        }
-        switch (ticker.toUpperCase()) {
-            // case "XLM":
-            //     return value.toString()
-            case "TBTC":
-            case "TLTC":
-            case "ITLTC":
-            case "ITBTC":
-            case "TBCH":
-            case "ITBCH":
-                //Satoshi is 10^-8 BTC
-                let factor = new BigNumber("10").exponentiatedBy("8");
-                return value.multipliedBy(factor).toString()
-            case "TETH":
-            case "ITETH":
-                //Wei is 10^-18 ETH
-                factor = new BigNumber("10").exponentiatedBy("18");
-                return value.multipliedBy(factor).toString()
-            default:
-                throw { name: "convertAmount", message: "Asset not supported" };
-        }
-
     }
 }
 module.exports = {

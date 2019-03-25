@@ -6,6 +6,7 @@ const GarbageCollector = require('./GarbageCollector');
 const garbageCollector = new GarbageCollector(auditEvent);
 const Broadcaster = require('ntrnetwork').Broadcaster;
 const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
+const translib = new(require('translib'))();
 require("./config/confTable");
 
 class liteAuditor {
@@ -38,8 +39,8 @@ class liteAuditor {
                                     this.completedTR.push({ timestamp: Date.now(), TR: this.workInProgress[element] });
                                     let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
                                     let presentDest = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
-                                    let sourNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
-                                    let destNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
+                                    let sourNet = translib.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
+                                    let destNet = translib.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
                                     await this.WSM.sendActionToAugmentedNode(this.workInProgress[element].transferRequest, confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
                                     this.workInProgress.splice(element, 1);
                                 }
@@ -65,8 +66,8 @@ class liteAuditor {
                             this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
                             let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, transaction)
                             if (notDuplicate) {
-                                let sourNet = this.validator.getNetworkSymbol(transaction.sourceNetwork);
-                                let destNet = this.validator.getNetworkSymbol(transaction.destinationNetwork);
+                                let sourNet = translib.getNetworkSymbol(transaction.sourceNetwork);
+                                let destNet = translib.getNetworkSymbol(transaction.destinationNetwork);
                                 await this.WSM.sendActionToAugmentedNode(transaction, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
                                 this.validator.saveTransferRequest(this.workInProgress, transaction);
                             } else { console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
@@ -98,8 +99,8 @@ class liteAuditor {
             //Save transferRequest in Redis for restart
             // validator.redisStoreTransferRequest(request)
             request.onlyReqConf = true;
-            let sourNet = this.validator.getNetworkSymbol(request.sourceNetwork);
-            let destNet = this.validator.getNetworkSymbol(request.destinationNetwork);
+            let sourNet = translib.getNetworkSymbol(request.sourceNetwork);
+            let destNet = translib.getNetworkSymbol(request.destinationNetwork);
             await this.WSM.sendActionToAugmentedNode(request, confTable, sourNet, destNet, "subscribe", true, true)
             response.status = 200;
             response.message = "Transfer request succesfully treated";
@@ -137,8 +138,8 @@ class liteAuditor {
                     this.completedTR.push({ timestamp: Date.now(), TR: this.workInProgress[element] });
                     let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
                     let presentDest = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
-                    let sourNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
-                    let destNet = this.validator.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
+                    let sourNet = translib.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
+                    let destNet = translib.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
                     await WSM.sendActionToAugmentedNode(this.workInProgress[element], confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
                     this.workInProgress.splice(element, 1);
                     // } else {

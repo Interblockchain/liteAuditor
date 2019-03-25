@@ -181,7 +181,7 @@ class routes {
         } catch (error) {
             console.log("Error: " + error.name + " " + error.message);
             let statusCode = (error.statusCode) ? error.statusCode : 500;
-            let errorObj = error.message;
+            let errorObj = error;
             errorObj.error = error.name;
             res.status(statusCode).json(errorObj);
         }
@@ -196,7 +196,7 @@ class routes {
         } catch (error) {
             console.log("Error: " + error.name + " " + error.message);
             let statusCode = (error.statusCode) ? error.statusCode : 500;
-            let errorObj = error.message;
+            let errorObj = error;
             errorObj.error = error.name;
             res.status(statusCode).json(errorObj);
         }
