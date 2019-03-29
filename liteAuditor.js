@@ -10,7 +10,7 @@ const translib = new(require('translib'))();
 require("./config/confTable");
 
 class liteAuditor {
-    constructor(ntrchannel, _url, _apiKey, _workInProgress, _timedOut, _completedTR, debug) {
+    constructor(ntrchannel, _url, _apiKey, debug, _workInProgress, _timedOut, _completedTR) {
         this.url = _url;
         this.apiKey = _apiKey;
         this.workInProgress = _workInProgress ? _workInProgress : [];
@@ -34,7 +34,7 @@ class liteAuditor {
                         this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(response)}`) : null;
                         this.validator.processEvent(this.workInProgress, response)
                             .then(async (element) => {
-                                console.log("Element: " + element);
+                                // console.log("Element: " + element);
                                 if (element >= 0) {
                                     this.completedTR.push({ timestamp: Date.now(), TR: this.workInProgress[element] });
                                     let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);

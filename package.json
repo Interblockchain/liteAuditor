@@ -1,6 +1,6 @@
 {
   "name": "liteauditor",
-  "version": "1.0.15",
+  "version": "1.0.18",
   "main": "liteAuditor.js",
   "author": {
     "name": "Paul Boulanger"
@@ -16,7 +16,7 @@
     "jsonschema": "^1.2.4",
     "ntrnetwork": "^2.8.32",
     "path": "^0.12.7",
-    "translib": "^1.0.1",
+    "translib": "^1.0.4",
     "wsmanagement": "^1.0.5"
   }
 }
