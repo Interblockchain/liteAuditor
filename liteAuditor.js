@@ -6,7 +6,7 @@ const GarbageCollector = require('./GarbageCollector');
 const garbageCollector = new GarbageCollector(auditEvent);
 const Broadcaster = require('ntrnetwork').Broadcaster;
 const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
-const translib = new(require('translib'))();
+const translib = new (require('translib'))();
 require("./config/confTable");
 
 class liteAuditor {
@@ -16,7 +16,7 @@ class liteAuditor {
         this.workInProgress = _workInProgress ? _workInProgress : [];
         this.timedOut = _timedOut ? _timedOut : [];
         this.completedTR = _completedTR ? _completedTR : [];
-        this.broadcaster = new Broadcaster(ntrchannel);
+        this.broadcaster = (ntrchannel) ? new Broadcaster(ntrchannel) : null;
         this._debug = debug ? debug : false;
         this.validator = new Validator(debug);
     }
@@ -58,33 +58,35 @@ class liteAuditor {
                 }
 
                 // Receive the transactions on the network 
-                this.broadcaster.subscribe(async (message_code, transaction) => {
+                if (this.broadcaster) {
+                    this.broadcaster.subscribe(async (message_code, transaction) => {
 
-                    if (message_code === MESSAGE_CODES.TX) {
-                        try {
-                            this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received TR via ntrnetwork}`) : null;
-                            this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
-                            let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, transaction)
-                            if (notDuplicate) {
-                                let sourNet = translib.getNetworkSymbol(transaction.sourceNetwork);
-                                let destNet = translib.getNetworkSymbol(transaction.destinationNetwork);
-                                await this.WSM.sendActionToAugmentedNode(transaction, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
-                                this.validator.saveTransferRequest(this.workInProgress, transaction);
-                            } else { console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
-                        } catch (error) {
-                            console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error for TX: ${error.name} ${error.message}`);
+                        if (message_code === MESSAGE_CODES.TX) {
+                            try {
+                                this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received TR via ntrnetwork}`) : null;
+                                this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
+                                let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, transaction)
+                                if (notDuplicate) {
+                                    let sourNet = translib.getNetworkSymbol(transaction.sourceNetwork);
+                                    let destNet = translib.getNetworkSymbol(transaction.destinationNetwork);
+                                    await this.WSM.sendActionToAugmentedNode(transaction, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
+                                    this.validator.saveTransferRequest(this.workInProgress, transaction);
+                                } else { console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
+                            } catch (error) {
+                                console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error for TX: ${error.name} ${error.message}`);
+                            }
                         }
-                    }
-                    if (message_code === MESSAGE_CODES.AUDIT) {
-                        try {
-                            console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received Audit event: Status= ${transaction.status}, TRID= ${transaction.TR.transferRequest.transactionID}`);
-                            //console.log(transaction);
-                            //auditEvent.emit('ntraudit', transaction);
-                        } catch (error) {
-                            console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error for AUDIT: ${error.name} ${error.message}`);
+                        if (message_code === MESSAGE_CODES.AUDIT) {
+                            try {
+                                console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received Audit event: Status= ${transaction.status}, TRID= ${transaction.TR.transferRequest.transactionID}`);
+                                //console.log(transaction);
+                                //auditEvent.emit('ntraudit', transaction);
+                            } catch (error) {
+                                console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error for AUDIT: ${error.name} ${error.message}`);
+                            }
                         }
-                    }
-                });
+                    });
+                }
             });
     }
 
@@ -94,7 +96,7 @@ class liteAuditor {
         if (notDuplicate) {
             this.validator.saveTransferRequest(this.workInProgress, request);
             // Broadcast and process the transferRequest to all neighbour nodes
-            this.broadcaster.publish(MESSAGE_CODES.TX, request);
+            if(this.broadcaster) {this.broadcaster.publish(MESSAGE_CODES.TX, request);}
             request.brdcTender = true;
             //Save transferRequest in Redis for restart
             // validator.redisStoreTransferRequest(request)
