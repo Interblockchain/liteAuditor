@@ -9,11 +9,13 @@ global.confTable = {
     "XLM": 1,
     "XRP": 1,
     "EOS": 1,
+    "WBI": 1,
     "TBTC": 0,
     "TBCH": 0,
     "TLTC": 0,
     "TETH": 1,
     "TXLM": 1,
     "TXRP": 1,
-    "TEOS": 1
+    "TEOS": 1,
+    "TWBI": 1
 }
