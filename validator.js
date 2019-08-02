@@ -261,7 +261,7 @@ class Validator {
         } catch (err) {
             // File does not exist
             this.nodeId = translib.uuidv4();
-            fs.writeFileSync(file, this.nodeId);
+            fs.writeFileSync(file, `validator-${this.nodeId}`);
             //console.log("Generating nodeId: " + this.nodeId);
         }
     }

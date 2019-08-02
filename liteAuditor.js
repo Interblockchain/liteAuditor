@@ -32,23 +32,35 @@ class liteAuditor {
                     var processResponse = (response) => {
                         this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Entering Response:`) : null;
                         this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(response)}`) : null;
-                        this.validator.processEvent(this.workInProgress, response)
-                            .then(async (element) => {
-                                // console.log("Element: " + element);
-                                if (element >= 0) {
-                                    this.completedTR.push({ timestamp: Date.now(), TR: this.workInProgress[element] });
-                                    let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
-                                    let presentDest = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
-                                    let sourNet = translib.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
-                                    let destNet = translib.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
-                                    await this.WSM.sendActionToAugmentedNode(this.workInProgress[element].transferRequest, confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
-                                    this.workInProgress.splice(element, 1);
-                                }
-                            })
-                            .catch((error) => {
-                                console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error: wsan message ${error.name} ${error.message}`);
-                            });
-
+                        switch (response.type) {
+                            case "ERROR":
+                                console.log(`${translib.logTime} [auditNetwork] augmentedNode ERROR for ${response.clientID}: ${response.message}`);
+                                break;
+                            case "message":
+                            case "notification":
+                                break;
+                            case "transaction":
+                                this.validator.processEvent(this.workInProgress, response.message)
+                                    .then(async (element) => {
+                                        // console.log("Element: " + element);
+                                        if (element >= 0) {
+                                            this.completedTR.push({ timestamp: Date.now(), TR: this.workInProgress[element] });
+                                            let presentSource = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.sourceAddress);
+                                            let presentDest = await this.validator.addressInWorkInProgress(this.workInProgress, element, this.workInProgress[element].transferRequest.destinationAddress);
+                                            let sourNet = translib.getNetworkSymbol(this.workInProgress[element].transferRequest.sourceNetwork);
+                                            let destNet = translib.getNetworkSymbol(this.workInProgress[element].transferRequest.destinationNetwork);
+                                            await this.WSM.sendActionToAugmentedNode(this.workInProgress[element].transferRequest, confTable, sourNet, destNet, "unsubscribe", !presentSource, !presentDest);
+                                            this.workInProgress.splice(element, 1);
+                                        }
+                                    })
+                                    .catch((error) => {
+                                        console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error: wsan message ${error.name} ${error.message}`);
+                                    });
+                                break;
+                            default:
+                                console.log(`${translib.logTime} [auditNetwork] In default switch for augmentedNode response type. PROBLEM.`);
+                                break;
+                        }
                     }
                     ANevent.addListener('response', processResponse);
                     garbageCollector.globalTimeout(this.workInProgress, this.timedOut, this.completedTR, confTable, this.WSM);
@@ -96,7 +108,7 @@ class liteAuditor {
         if (notDuplicate) {
             this.validator.saveTransferRequest(this.workInProgress, request);
             // Broadcast and process the transferRequest to all neighbour nodes
-            if(this.broadcaster) {this.broadcaster.publish(MESSAGE_CODES.TX, request);}
+            if (this.broadcaster) { this.broadcaster.publish(MESSAGE_CODES.TX, request); }
             request.brdcTender = true;
             //Save transferRequest in Redis for restart
             // validator.redisStoreTransferRequest(request)

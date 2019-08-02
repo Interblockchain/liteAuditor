@@ -1,6 +1,6 @@
 {
   "name": "liteauditor",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "main": "liteAuditor.js",
   "author": {
     "name": "Paul Boulanger"
@@ -10,7 +10,7 @@
     "start": "node ./liteAuditor.js"
   },
   "dependencies": {
-    "bignumber.js": "^7.2.1",
+    "bignumber.js": "^9.0.0",
     "events": "^3.0.0",
     "fs": "0.0.1-security",
     "jsonschema": "^1.2.4",
