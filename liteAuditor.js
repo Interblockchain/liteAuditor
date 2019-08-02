@@ -10,9 +10,9 @@ const translib = new (require('translib'))();
 require("./config/confTable");
 
 class liteAuditor {
-    constructor(ntrchannel, _url, _apiKey, debug, _workInProgress, _timedOut, _completedTR) {
+    constructor(ntrchannel, _url, _options, debug, _workInProgress, _timedOut, _completedTR) {
         this.url = _url;
-        this.apiKey = _apiKey;
+        this.options = _options;
         this.workInProgress = _workInProgress ? _workInProgress : [];
         this.timedOut = _timedOut ? _timedOut : [];
         this.completedTR = _completedTR ? _completedTR : [];
@@ -26,7 +26,7 @@ class liteAuditor {
             .then(() => {
                 // Reconnecting Websocket connections to the Watchers
                 try {
-                    this.WSM = new WebSocketManagement(this.url, this.apiKey, this.validator.nodeId, this._debug);
+                    this.WSM = new WebSocketManagement(this.url, this.validator.nodeId, this.options, this._debug);
                     this.WSM.connectAugmentedNodeWS();
 
                     var processResponse = (response) => {
