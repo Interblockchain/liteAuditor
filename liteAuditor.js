@@ -30,11 +30,11 @@ class liteAuditor {
                     this.WSM.connectAugmentedNodeWS();
 
                     var processResponse = (response) => {
-                        this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Entering Response:`) : null;
-                        this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(response)}`) : null;
+                        this._debug ? console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Entering Response:`) : null;
+                        this._debug ? console.log(`${translib.logTime()} [liteAuditor:auditNetwork] ${JSON.stringify(response)}`) : null;
                         switch (response.type) {
                             case "ERROR":
-                                console.log(`${translib.logTime} [auditNetwork] augmentedNode ERROR for ${response.clientID}: ${response.message}`);
+                                console.log(`${translib.logTime()} [auditNetwork] augmentedNode ERROR for ${response.clientID}: ${response.message}`);
                                 break;
                             case "message":
                             case "notification":
@@ -54,11 +54,11 @@ class liteAuditor {
                                         }
                                     })
                                     .catch((error) => {
-                                        console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error: wsan message ${error.name} ${error.message}`);
+                                        console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Error: wsan message ${error.name} ${error.message}`);
                                     });
                                 break;
                             default:
-                                console.log(`${translib.logTime} [auditNetwork] In default switch for augmentedNode response type. PROBLEM.`);
+                                console.log(`${translib.logTime()} [auditNetwork] In default switch for augmentedNode response type. PROBLEM.`);
                                 break;
                         }
                     }
@@ -66,7 +66,7 @@ class liteAuditor {
                     garbageCollector.globalTimeout(this.workInProgress, this.timedOut, this.completedTR, confTable, this.WSM);
                     garbageCollector.paymentTimeout(this.workInProgress, this.timedOut, confTable, this.WSM);
                 } catch (error) {
-                    console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error with WS or garbage collection: ${error.name} ${error.message}`);
+                    console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Error with WS or garbage collection: ${error.name} ${error.message}`);
                 }
 
                 // Receive the transactions on the network 
@@ -75,26 +75,26 @@ class liteAuditor {
 
                         if (message_code === MESSAGE_CODES.TX) {
                             try {
-                                this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received TR via ntrnetwork}`) : null;
-                                this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
+                                this._debug ? console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Received TR via ntrnetwork}`) : null;
+                                this._debug ? console.log(`${translib.logTime()} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
                                 let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, transaction)
                                 if (notDuplicate) {
                                     let sourNet = translib.getNetworkSymbol(transaction.sourceNetwork);
                                     let destNet = translib.getNetworkSymbol(transaction.destinationNetwork);
                                     await this.WSM.sendActionToAugmentedNode(transaction, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
                                     this.validator.saveTransferRequest(this.workInProgress, transaction);
-                                } else { console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
+                                } else { console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
                             } catch (error) {
-                                console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error for TX: ${error.name} ${error.message}`);
+                                console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Error for TX: ${error.name} ${error.message}`);
                             }
                         }
                         if (message_code === MESSAGE_CODES.AUDIT) {
                             try {
-                                console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Received Audit event: Status= ${transaction.status}, TRID= ${transaction.TR.transferRequest.transactionID}`);
+                                console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Received Audit event: Status= ${transaction.status}, TRID= ${transaction.TR.transferRequest.transactionID}`);
                                 //console.log(transaction);
                                 //auditEvent.emit('ntraudit', transaction);
                             } catch (error) {
-                                console.log(`${Date().toString().substring(0, 24)} [liteAuditor:auditNetwork] Error for AUDIT: ${error.name} ${error.message}`);
+                                console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Error for AUDIT: ${error.name} ${error.message}`);
                             }
                         }
                     });
@@ -133,16 +133,16 @@ class liteAuditor {
             //         });
             // }
         } else {
-            console.log(`${Date().toString().substring(0, 24)} [liteAuditor:processRequest] TR already accounted for in workInProgress`);
+            console.log(`${translib.logTime()} [liteAuditor:processRequest] TR already accounted for in workInProgress`);
             response.status = 400;
-            response.message = `${Date().toString().substring(0, 24)} Transfer Request already in workInProgress`;
+            response.message = `${translib.logTime()} Transfer Request already in workInProgress`;
         }
         return response;
     }
 
     async processReply(reply) {
-        this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:processReply] Received Reply`) : null;
-        this._debug ? console.log(`${Date().toString().substring(0, 24)} [liteAuditor:processREply] api: ${JSON.stringify(reply, null, 2)}`) : null;
+        this._debug ? console.log(`${translib.logTime()} [liteAuditor:processReply] Received Reply`) : null;
+        this._debug ? console.log(`${translib.logTime()} [liteAuditor:processREply] api: ${JSON.stringify(reply, null, 2)}`) : null;
         let response = {};
         await this.validator.processEvent(this.workInProgress, reply)
             .then(async (element) => {
@@ -170,7 +170,7 @@ class liteAuditor {
                 return response;
             })
             .catch((error) => {
-                console.log(`${Date().toString().substring(0, 24)} [liteAuditor:processReply] Error: ${error.name} ${error.message}`);
+                console.log(`${translib.logTime()} [liteAuditor:processReply] Error: ${error.name} ${error.message}`);
                 let statusCode = (error.statusCode) ? error.statusCode : 500;
                 let errorObj = error.message;
                 errorObj.error = error.name;

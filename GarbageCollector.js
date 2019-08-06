@@ -13,7 +13,7 @@ class garbageCollector {
             workInProgress.forEach(async (element, index) => {
                 let elapsed = Date.now() - Date.parse(element.timestamp);
                 if (elapsed > 48 * 60 * 60 * 1000) {
-                    console.log(`${Date().toString().substring(0, 24)} [garbageCollector] Global Timeout for TRID: ${element.transferRequest.transactionID}`);
+                    console.log(`${translib.logTime()} [garbageCollector] Global Timeout for TRID: ${element.transferRequest.transactionID}`);
                     timedOut.push({ timestamp: Date.now(), TR: element });
                     let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
                     let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
@@ -49,7 +49,7 @@ class garbageCollector {
             workInProgress.forEach(async (element, index) => {
                 let elapsed = Date.now() - Date.parse(element.timestamp);
                 if (elapsed > 10 * 60 * 1000 && element.sourceTxHash === "") {
-                    console.log(`${Date().toString().substring(0, 24)} [garbageCollector] Timeout on payment for TRID: ${element.transferRequest.transactionID}`);
+                    console.log(`${translib.logTime()} [garbageCollector] Timeout on payment for TRID: ${element.transferRequest.transactionID}`);
                     timedOut.push({ timestamp: Date.now(), TR: element });
                     let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
                     let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
