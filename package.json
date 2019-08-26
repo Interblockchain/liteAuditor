@@ -16,7 +16,7 @@
     "jsonschema": "^1.2.4",
     "ntrnetwork": "^2.8.34",
     "path": "^0.12.7",
-    "translib": "^1.0.10",
+    "translib": "^1.0.12",
     "wsmanagement": "^1.0.7"
   }
 }
