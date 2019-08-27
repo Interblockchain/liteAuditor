@@ -40,7 +40,7 @@ class liteAuditor {
                             case "notification":
                                 break;
                             case "transaction":
-                                this.validator.processEvent(this.workInProgress, response.message)
+                                this.validator.processEvent(this.workInProgress, JSON.parse(response.message))
                                     .then(async (element) => {
                                         // console.log("Element: " + element);
                                         if (element >= 0) {
