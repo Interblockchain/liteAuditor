@@ -102,7 +102,8 @@ class liteAuditor {
             });
     }
 
-    async processRequest(request) {
+    async processRequest(payload) {
+        let request = payload.data;
         let response = {};
         let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, request);
         if (notDuplicate) {
