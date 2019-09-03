@@ -109,7 +109,7 @@ class liteAuditor {
         if (notDuplicate) {
             this.validator.saveTransferRequest(this.workInProgress, request);
             // Broadcast and process the transferRequest to all neighbour nodes
-            if (this.broadcaster) { this.broadcaster.publish(MESSAGE_CODES.TX, request); }
+            if (this.broadcaster) { this.broadcaster.publish(MESSAGE_CODES.TX, payload); }
             request.brdcTender = true;
             //Save transferRequest in Redis for restart
             // validator.redisStoreTransferRequest(request)
