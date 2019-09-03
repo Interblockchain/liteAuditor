@@ -75,14 +75,15 @@ class liteAuditor {
 
                         if (message_code === MESSAGE_CODES.TX) {
                             try {
+                                let tx = transaction.data;
                                 this._debug ? console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Received TR via ntrnetwork}`) : null;
                                 this._debug ? console.log(`${translib.logTime()} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
-                                let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, transaction)
+                                let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, tx)
                                 if (notDuplicate) {
-                                    let sourNet = translib.getNetworkSymbol(transaction.sourceNetwork);
-                                    let destNet = translib.getNetworkSymbol(transaction.destinationNetwork);
-                                    await this.WSM.sendActionToAugmentedNode(transaction, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
-                                    this.validator.saveTransferRequest(this.workInProgress, transaction);
+                                    let sourNet = translib.getNetworkSymbol(tx.sourceNetwork);
+                                    let destNet = translib.getNetworkSymbol(tx.destinationNetwork);
+                                    await this.WSM.sendActionToAugmentedNode(tx, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
+                                    this.validator.saveTransferRequest(this.workInProgress, tx);
                                 } else { console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
                             } catch (error) {
                                 console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Error for TX: ${error.name} ${error.message}`);
