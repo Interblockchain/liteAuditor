@@ -17,5 +17,6 @@ global.confTable = {
     "TXLM": 1,
     "TXRP": 1,
     "TEOS": 1,
-    "TWBI": 1
+    "TWBI": 1,
+    "TLOS": 1
 }
