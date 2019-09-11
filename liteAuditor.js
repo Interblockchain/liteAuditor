@@ -82,7 +82,7 @@ class liteAuditor {
                                 if (notDuplicate) {
                                     let sourNet = translib.getNetworkSymbol(tx.sourceNetwork);
                                     let destNet = translib.getNetworkSymbol(tx.destinationNetwork);
-                                    await this.WSM.sendActionToAugmentedNode(tx, confTable, sourNet, destNet, "subscribe", validator.nodeId, true, true)
+                                    await this.WSM.sendActionToAugmentedNode(tx, confTable, sourNet, destNet, "subscribe", this.validator.nodeId, true, true)
                                     this.validator.saveTransferRequest(this.workInProgress, tx);
                                 } else { console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
                             } catch (error) {
