@@ -29,7 +29,7 @@ module.exports.transferRequest = {
         "nodeID": {"type": "string"},
         "ip": {"type": "string"}
     },
-    "additionalProperties": false,
+    "additionalProperties": true,
     "required": ["transactionID", "sourceNetwork", "sourceAddress", "amount",
         "destinationNetwork", "destinationAddress", "ticker", "appID"]
 };
