@@ -93,7 +93,7 @@ class liteAuditor {
                             try {
                                 console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Received Audit event: Status= ${transaction.status}, TRID= ${transaction.TR.transferRequest.transactionID}`);
                                 //console.log(transaction);
-                                //auditEvent.emit('ntraudit', transaction);
+                                auditEvent.emit('ntraudit', transaction);
                             } catch (error) {
                                 console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Error for AUDIT: ${error.name} ${error.message}`);
                             }
@@ -198,6 +198,7 @@ class liteAuditor {
 
 module.exports = {
     auditor: liteAuditor,
+    nodeID: this.validator.nodeID,
     eventEmitter: auditEvent,
     validator: this.validator
 };

@@ -206,6 +206,7 @@ class Validator {
                     console.log(`${translib.logTime()} [validator:processEvent] Audit Failed, amounts do not match!`);
                 }
                 let auditDetails = {
+                    auditorID: this.nodeId,
                     status: requestAudited,
                     TR: workInProgress[element]
                 };
@@ -237,6 +238,7 @@ class Validator {
                         console.log(`${translib.logTime()} [validator:processEvent] Audit Failed, amounts do not match!`);
                     }
                     let auditDetails = {
+                        auditorID: this.nodeId,
                         status: requestAudited,
                         TR: workInProgress[element]
                     };
@@ -268,5 +270,6 @@ class Validator {
 }
 module.exports = {
     validator: Validator,
+    nodeID : this.nodeId,
     eventEmitter: eventEmitter
 };
