@@ -1,6 +1,6 @@
 {
   "name": "liteauditor",
-  "version": "1.0.39",
+  "version": "1.0.42",
   "main": "liteAuditor.js",
   "author": {
     "name": "Paul Boulanger"

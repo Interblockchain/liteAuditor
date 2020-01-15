@@ -26,6 +26,7 @@ class liteAuditor {
             .then(() => {
                 // Reconnecting Websocket connections to the Watchers
                 try {
+                    this._nodeID = this.validator.nodeId;
                     this.WSM = new WebSocketManagement(this.url, this.validator.nodeId, this.options, this._debug);
                     this.WSM.connectAugmentedNodeWS();
 
@@ -192,13 +193,15 @@ class liteAuditor {
     }
 
     get ANWS() {
-        return this.WSM
+        return this.WSM;
+    }
+
+    get nodeID() {
+        return this._nodeID;
     }
 }
 
 module.exports = {
     auditor: liteAuditor,
-    nodeID: this.validator.nodeID,
     eventEmitter: auditEvent,
-    validator: this.validator
 };
