@@ -14,7 +14,7 @@
     "events": "^3.0.0",
     "fs": "0.0.1-security",
     "jsonschema": "^1.2.5",
-    "ntrnetwork": "^2.8.39",
+    "ntrnetwork": "^2.8.43",
     "path": "^0.12.7",
     "translib": "^1.0.27",
     "wsmanagement": "^1.0.7"
