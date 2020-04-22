@@ -5,7 +5,12 @@ const ANevent = require('wsmanagement').eventEmitter;
 const GarbageCollector = require('./GarbageCollector');
 const garbageCollector = new GarbageCollector(auditEvent);
 const Broadcaster = require('ntrnetwork').Broadcaster;
-const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
+// const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
+const MESSAGE_CODES = {
+    STATUS: 0x00,
+    TX: 0x02,
+    AUDIT: 0x03
+  }
 const translib = new (require('translib'))();
 require("./config/confTable");
 
