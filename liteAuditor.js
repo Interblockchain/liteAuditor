@@ -120,7 +120,7 @@ class liteAuditor {
             request.brdcTender = true;
             //Save transferRequest in Redis for restart
             // validator.redisStoreTransferRequest(request)
-            request.onlyReqConf = true;
+            request.onlyReqConf = false; // we want all notifications from augmentedNode
             let sourNet = translib.getNetworkSymbol(request.sourceNetwork);
             let destNet = translib.getNetworkSymbol(request.destinationNetwork);
             await this.WSM.sendActionToAugmentedNode(request, confTable, sourNet, destNet, "subscribe", true, true)
