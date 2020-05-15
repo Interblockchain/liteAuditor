@@ -55,8 +55,8 @@ class Validator {
         } else {
             var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from : "0";
         }
-        const sourceKey = `${sourceNetwork}:${sourceAddress}:${from}:${amount}:${transferRequest.ticker}`;
-        const destKey = `${destNetwork}:${destinationAddress}:0:${amount}:${transferRequest.ticker}`;
+        const sourceKey = `${sourceNetwork}:${sourceAddress.toUpperCase()}:${from.toUpperCase()}:${amount}:${transferRequest.ticker}`;
+        const destKey = `${destNetwork}:${destinationAddress.toUpperCase()}:0:${amount}:${transferRequest.ticker}`;
 
         const transferInfo = {
             timestamp: translib.logTime(),
@@ -101,8 +101,8 @@ class Validator {
         } else {
             var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from : "0";
         }
-        const sourceKey = `${sourceNetwork}:${sourceAddress}:${from}:${amount}:${transferRequest.ticker}`;
-        const destKey = `${destNetwork}:${destinationAddress}:0:${amount}:${transferRequest.ticker}`;
+        const sourceKey = `${sourceNetwork}:${sourceAddress.toUpperCase()}:${from.toUpperCase()}:${amount}:${transferRequest.ticker}`;
+        const destKey = `${destNetwork}:${destinationAddress.toUpperCase()}:0:${amount}:${transferRequest.ticker}`;
 
         try {
             const ssElement = workInProgress.findIndex(element => element.sourceKey === sourceKey);
@@ -182,7 +182,7 @@ class Validator {
             from = (eventObj.addressFrom && eventObj.from != "none") ? eventObj.addressFrom : "0";
             address = addressTo;
         }
-        let key = `${eventObj.network.toUpperCase()}:${address}:${from}:${amount}:${eventObj.ticker}`;
+        let key = `${eventObj.network.toUpperCase()}:${address.toUpperCase()}:${from.toUpperCase()}:${amount}:${eventObj.ticker}`;
         //console.log("Key source: " + key);
         let element = workInProgress.findIndex(element => element.sourceKey === key);
         if (element >= 0) {
@@ -214,7 +214,7 @@ class Validator {
                 return element;
             }
         } else {
-            key = `${eventObj.network.toUpperCase()}:${address}:0:${amount}:${eventObj.ticker}`;
+            key = `${eventObj.network.toUpperCase()}:${address.toUpperCase()}:0:${amount}:${eventObj.ticker}`;
             //console.log("Key dest: " + key);
             element = workInProgress.findIndex(element => element.destKey === key);
             if (element >= 0) {
@@ -266,6 +266,16 @@ class Validator {
             fs.writeFileSync(file, this.nodeId);
             //console.log("Generating nodeId: " + this.nodeId);
         }
+    }
+
+    async checkAddress(network, address, currency){
+        // Check if address is valid. The criteria are:
+        // For UTXO + ETH: formatted correctly
+        // For XLM: existence and does it trust the valid token:issuer
+        // For XRP and EOSIO: existence only
+
+
+
     }
 }
 module.exports = {

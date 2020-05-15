@@ -112,6 +112,7 @@ class liteAuditor {
     async processRequest(payload) {
         let request = payload.data;
         let response = {};
+        // let addressValid = await this.validator.checkAddress(request.destinationNetwork, request.destinationAddress, request.ticker);
         let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, request);
         if (notDuplicate) {
             this.validator.saveTransferRequest(this.workInProgress, request);
