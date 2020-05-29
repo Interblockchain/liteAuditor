@@ -32,6 +32,8 @@ const path = require('path');
 const translib = new(require('translib'))();
 var events = require('events');
 var eventEmitter = new events.EventEmitter();
+const comms = new (require("./axios.controller.js"))();
+const bigNumber = require('bignumber.js');
 
 require("./config/confTable");
 
@@ -47,7 +49,27 @@ class Validator {
     saveTransferRequest(workInProgress, transferRequest) {
         const sourceNetwork = translib.getNetworkSymbol(transferRequest.sourceNetwork);
         const destNetwork = translib.getNetworkSymbol(transferRequest.destinationNetwork);
-        const amount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
+
+        // Here we must get the fees to add them correctly to the amounts
+        const reqBody = {
+            accountID: transferRequest.accountID,
+            network: destNetwork,
+            currency: transferRequest.ticker,
+            provider: "moveToken",
+            amount: transferRequest.amount
+        };
+        const fees = await comms.axiosPOST(`https://api.transledger.io/feeserver/fees`, reqBody, { headers: { apicode: "340f202c-fa7b-4fdc-babf-8ddc2a9f3543" } });
+        if(isNaN(fees.incomeFee) || isNaN(fees.networkFee)) {
+            throw { name: `${translib.logTime()} validator, saveTransferRequest: ERROR fetching fees`, statusCode: 400, message: transferRequest }
+        }
+        // Then we calculate the respective amounts
+        // sourceAmount = amount 
+        // destAmount = amount - networkFees - incomeFees
+        let bigDestAmount = (new bigNumber(amount)).minus(fees.incomeFee).minus(fees.networkFee).toString();
+        const sourceAmount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
+        const destAmount = translib.convertAmountToInteger(bigDestAmount , transferRequest.ticker);
+
+        //Some arithmetic to construct keys
         const sourceAddress = (sourceNetwork == "TETH" || sourceNetwork == "ETH") ? transferRequest.sourceAddress.toLowerCase() : transferRequest.sourceAddress;
         const destinationAddress = (destNetwork == "TETH" || destNetwork == "ETH") ? transferRequest.destinationAddress.toLowerCase() : transferRequest.destinationAddress;
         if (sourceNetwork == "TETH" || sourceNetwork == "ETH") {
@@ -55,9 +77,10 @@ class Validator {
         } else {
             var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from : "0";
         }
-        const sourceKey = `${sourceNetwork}:${sourceAddress.toUpperCase()}:${from.toUpperCase()}:${amount}:${transferRequest.ticker}`;
-        const destKey = `${destNetwork}:${destinationAddress.toUpperCase()}:0:${amount}:${transferRequest.ticker}`;
+        const sourceKey = `${sourceNetwork}:${sourceAddress.toUpperCase()}:${from.toUpperCase()}:${sourceAmount}:${transferRequest.ticker}`;
+        const destKey = `${destNetwork}:${destinationAddress.toUpperCase()}:0:${destAmount}:${transferRequest.ticker}`;
 
+        // Save the TR in the workInProgress
         const transferInfo = {
             timestamp: translib.logTime(),
             sourceKey: sourceKey,
@@ -133,10 +156,11 @@ class Validator {
     }
 
     //TO DO: Add additionnal tests (check amounts) when unambiguous destination
-    //Use bignumber for decimals? Integrate fees.
+    //Use bignumber for decimals? Integrate fees?
     auditRequest(request) {
         //console.log(request.sourceAmount + " vs " + request.destinationAmount);
-        return request.sourceAmount === request.destinationAmount;
+        // return request.sourceAmount === request.destinationAmount;
+        return true;
     }
 
     addressInWorkInProgress(workInProgress, index, address) {
@@ -278,6 +302,7 @@ class Validator {
 
     }
 }
+
 module.exports = {
     validator: Validator,
     nodeID : this.nodeId,
