@@ -62,7 +62,7 @@ class Validator {
         // Calculate the respective amounts
         // sourceAmount = amount 
         // destAmount = amount - networkFees - incomeFees
-        let bigDestAmount = (new bigNumber(amount)).minus(fees.incomeFee).minus(fees.networkFee).toString();
+        let bigDestAmount = (new bigNumber(transferRequest.amount)).minus(fees.incomeFee).minus(fees.networkFee).toString();
         const sourceAmount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
         const destAmount = translib.convertAmountToInteger(bigDestAmount, transferRequest.ticker);
 
@@ -135,7 +135,7 @@ class Validator {
         // Then we calculate the respective amounts
         // sourceAmount = amount 
         // destAmount = amount - networkFees - incomeFees
-        let bigDestAmount = (new bigNumber(amount)).minus(fees.incomeFee).minus(fees.networkFee).toString();
+        let bigDestAmount = (new bigNumber(transferRequest.amount)).minus(fees.incomeFee).minus(fees.networkFee).toString();
         const sourceAmount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
         const destAmount = translib.convertAmountToInteger(bigDestAmount, transferRequest.ticker);
 
