@@ -1,11 +1,10 @@
-const Validator = require("./validator.js").validator;
-const validator = new Validator();
 const translib = new(require('translib'))();
 
 class garbageCollector {
 
-    constructor(eventEmitter) {
+    constructor(eventEmitter, validator) {
         this._eventEmitter = eventEmitter;
+        this._validator = validator;
     }
 
     async globalTimeout(workInProgress, timedOut, completedTR, confTable, WSM) {
@@ -15,8 +14,8 @@ class garbageCollector {
                 if (elapsed > 48 * 60 * 60 * 1000) {
                     console.log(`${translib.logTime()} [garbageCollector] Global Timeout for TRID: ${element.transferRequest.transactionID}`);
                     timedOut.push({ timestamp: Date.now(), TR: element });
-                    let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
-                    let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
+                    let presentSource = await this._validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
+                    let presentDest = await this._validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
                     let sourNet = translib.getNetworkSymbol(element.transferRequest.sourceNetwork);
                     let destNet = translib.getNetworkSymbol(element.transferRequest.destinationNetwork);
                     await WSM.sendActionToAugmentedNode(element.transferRequest, confTable, sourNet, destNet,  "unsubscribe", !presentSource, !presentDest);
@@ -51,8 +50,8 @@ class garbageCollector {
                 if (elapsed > 10 * 60 * 1000 && element.sourceTxHash === "") {
                     console.log(`${translib.logTime()} [garbageCollector] Timeout on payment for TRID: ${element.transferRequest.transactionID}`);
                     timedOut.push({ timestamp: Date.now(), TR: element });
-                    let presentSource = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
-                    let presentDest = await validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
+                    let presentSource = await this._validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.sourceAddress);
+                    let presentDest = await this._validator.addressInWorkInProgress(workInProgress, index, element.transferRequest.destinationAddress);
                     let sourNet = translib.getNetworkSymbol(element.transferRequest.sourceNetwork);
                     let destNet = translib.getNetworkSymbol(element.transferRequest.destinationNetwork);
                     await WSM.sendActionToAugmentedNode(element.transferRequest, confTable, sourNet, destNet,  "unsubscribe", !presentSource, !presentDest);

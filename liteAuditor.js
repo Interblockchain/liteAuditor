@@ -3,7 +3,6 @@ const auditEvent = require('./validator.js').eventEmitter;
 const WebSocketManagement = require('wsmanagement').WS;
 const ANevent = require('wsmanagement').eventEmitter;
 const GarbageCollector = require('./GarbageCollector');
-const garbageCollector = new GarbageCollector(auditEvent);
 const Broadcaster = require('ntrnetwork').Broadcaster;
 // const MESSAGE_CODES = require('ntrnetwork').MESSAGE_CODES;
 const MESSAGE_CODES = {
@@ -15,15 +14,17 @@ const translib = new (require('translib'))();
 require("./config/confTable");
 
 class liteAuditor {
-    constructor(ntrchannel, _url, _options, debug, _workInProgress, _timedOut, _completedTR) {
-        this.url = _url;
-        this.options = _options;
-        this.workInProgress = _workInProgress ? _workInProgress : [];
-        this.timedOut = _timedOut ? _timedOut : [];
-        this.completedTR = _completedTR ? _completedTR : [];
-        this.broadcaster = (ntrchannel) ? new Broadcaster(ntrchannel) : null;
-        this._debug = debug ? debug : false;
-        this.validator = new Validator(debug);
+    constructor(params) {
+        this.url = params.url;
+        this.options = params.options;
+        this.workInProgress = (params.workInProgress) ? params.workInProgress : [];
+        this.timedOut = (params.timedOut) ? params.timedOut : [];
+        this.completedTR = (params.completedTR) ? params.completedTR : [];
+        this.broadcaster = (params.ntrchannel) ? new Broadcaster(params.ntrchannel) : null;
+        this._debug = (params.debug) ? params.debug : false;
+        this.validator = new Validator(params);
+        this.garbageCollector = new GarbageCollector(auditEvent, this.validator);
+
     }
 
     auditNetwork() {
@@ -69,8 +70,8 @@ class liteAuditor {
                         }
                     }
                     ANevent.addListener('response', processResponse);
-                    garbageCollector.globalTimeout(this.workInProgress, this.timedOut, this.completedTR, confTable, this.WSM);
-                    garbageCollector.paymentTimeout(this.workInProgress, this.timedOut, confTable, this.WSM);
+                    this.garbageCollector.globalTimeout(this.workInProgress, this.timedOut, this.completedTR, confTable, this.WSM);
+                    this.garbageCollector.paymentTimeout(this.workInProgress, this.timedOut, confTable, this.WSM);
                 } catch (error) {
                     console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Error with WS or garbage collection: ${error.name} ${error.message}`);
                 }
@@ -85,11 +86,11 @@ class liteAuditor {
                                 this._debug ? console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Received TR via ntrnetwork}`) : null;
                                 this._debug ? console.log(`${translib.logTime()} [liteAuditor:auditNetwork] ${JSON.stringify(transaction)}`) : null;
                                 let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, tx)
-                                if (notDuplicate) {
+                                if (notDuplicate.status) {
                                     let sourNet = translib.getNetworkSymbol(tx.sourceNetwork);
                                     let destNet = translib.getNetworkSymbol(tx.destinationNetwork);
                                     await this.WSM.sendActionToAugmentedNode(tx, confTable, sourNet, destNet, "subscribe", this.validator.nodeId, true, true)
-                                    this.validator.saveTransferRequest(this.workInProgress, tx);
+                                    await this.validator.saveTransferRequest(this.workInProgress, tx, notDuplicate.fees);
                                 } else { console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Transfer Request is a duplicate!`) }
                             } catch (error) {
                                 console.log(`${translib.logTime()} [liteAuditor:auditNetwork] Error for TX: ${error.name} ${error.message}`);
@@ -114,8 +115,8 @@ class liteAuditor {
         let response = {};
         // let addressValid = await this.validator.checkAddress(request.destinationNetwork, request.destinationAddress, request.ticker);
         let notDuplicate = await this.validator.checkRequestDuplicate(this.workInProgress, request);
-        if (notDuplicate) {
-            this.validator.saveTransferRequest(this.workInProgress, request);
+        if (notDuplicate.status) {
+            await this.validator.saveTransferRequest(this.workInProgress, request, notDuplicate.fees);
             // Broadcast and process the transferRequest to all neighbour nodes
             if (this.broadcaster) { this.broadcaster.publish(MESSAGE_CODES.TX, payload); }
             request.brdcTender = true;

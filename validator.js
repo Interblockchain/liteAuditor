@@ -29,45 +29,42 @@ const objChecker = require('jsonschema').Validator;
 const v = new objChecker();
 const fs = require('fs');
 const path = require('path');
-const translib = new(require('translib'))();
+const translib = new (require('translib'))();
 var events = require('events');
 var eventEmitter = new events.EventEmitter();
 const comms = new (require("./axios.controller.js"))();
 const bigNumber = require('bignumber.js');
 
+const MongoDB = require("./config/mongoDB");
+const Transfer = require('./models/transfer');
+const mongoose = require('mongoose');
+
 require("./config/confTable");
 
 class Validator {
-    constructor(debug) {
-        this._debug = debug ? debug : false;
-     }
+    constructor(params) {
+        this.withMongo = false;
+        this._debug = params.debug ? params.debug : false;
+        if (params.mongoHost) {
+            this.withMongo = true
+            this.mongoDB = new MongoDB(params.mongoUser, params.mongoPsw, params.mongoHost, params.mongoDB, params.mongoPort);
+        }
+    }
 
     async init() {
         await this.getNodeId();
     }
 
-    saveTransferRequest(workInProgress, transferRequest) {
+    async saveTransferRequest(workInProgress, transferRequest, fees) {
         const sourceNetwork = translib.getNetworkSymbol(transferRequest.sourceNetwork);
         const destNetwork = translib.getNetworkSymbol(transferRequest.destinationNetwork);
 
-        // Here we must get the fees to add them correctly to the amounts
-        const reqBody = {
-            accountID: transferRequest.accountID,
-            network: destNetwork,
-            currency: transferRequest.ticker,
-            provider: "moveToken",
-            amount: transferRequest.amount
-        };
-        const fees = await comms.axiosPOST(`https://api.transledger.io/feeserver/fees`, reqBody, { headers: { apicode: "340f202c-fa7b-4fdc-babf-8ddc2a9f3543" } });
-        if(isNaN(fees.incomeFee) || isNaN(fees.networkFee)) {
-            throw { name: `${translib.logTime()} validator, saveTransferRequest: ERROR fetching fees`, statusCode: 400, message: transferRequest }
-        }
-        // Then we calculate the respective amounts
+        // Calculate the respective amounts
         // sourceAmount = amount 
         // destAmount = amount - networkFees - incomeFees
         let bigDestAmount = (new bigNumber(amount)).minus(fees.incomeFee).minus(fees.networkFee).toString();
         const sourceAmount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
-        const destAmount = translib.convertAmountToInteger(bigDestAmount , transferRequest.ticker);
+        const destAmount = translib.convertAmountToInteger(bigDestAmount, transferRequest.ticker);
 
         //Some arithmetic to construct keys
         const sourceAddress = (sourceNetwork == "TETH" || sourceNetwork == "ETH") ? transferRequest.sourceAddress.toLowerCase() : transferRequest.sourceAddress;
@@ -80,28 +77,34 @@ class Validator {
         const sourceKey = `${sourceNetwork}:${sourceAddress.toUpperCase()}:${from.toUpperCase()}:${sourceAmount}:${transferRequest.ticker}`;
         const destKey = `${destNetwork}:${destinationAddress.toUpperCase()}:0:${destAmount}:${transferRequest.ticker}`;
 
-        // Save the TR in the workInProgress
+        // Save the TR in the workInProgress and mongo
         const transferInfo = {
             timestamp: translib.logTime(),
             sourceKey: sourceKey,
             destKey: destKey,
             transferRequest: transferRequest,
             sourceReqConf: confTable[sourceNetwork],
-            sourceNbConf: "-1",
+            sourceNbConf: -1,
             sourceTxHash: "",
             destinationReqConf: confTable[destNetwork],
-            destinationNbConf: "-1",
+            destinationNbConf: -1,
             destinationTxHash: "",
             sourceAmount: "",
             destinationAmount: "",
             sourceMessageID: "",
-            destinationMessageID: ""
+            destinationMessageID: "",
+            incomeFees: fees.incomeFee,
+            networkFees: fees.networkFee
         };
         workInProgress.push(transferInfo);
+        if (this.withMongo) {
+            const transfer = new Transfer(transferInfo);
+            await transfer.save();
+            console.log(`[validator:saveTransferRequest] saved : ${transferInfo.transferRequest.transactionID}`);
+        }
     }
 
-    checkRequestDuplicate(workInProgress, transferRequest) {
-
+    async checkRequestDuplicate(workInProgress, transferRequest) {
         let responseObj = transferRequest;
         let validationParams = v.validate(transferRequest, schemasObj.transferRequest);
         if (!validationParams.valid) {
@@ -116,7 +119,26 @@ class Validator {
 
         const sourceNetwork = translib.getNetworkSymbol(transferRequest.sourceNetwork);
         const destNetwork = translib.getNetworkSymbol(transferRequest.destinationNetwork);
-        const amount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
+
+        // Here we must get the fees to add them correctly to the amounts
+        const reqBody = {
+            accountID: transferRequest.accountID,
+            network: destNetwork,
+            currency: transferRequest.ticker,
+            provider: "moveToken",
+            amount: transferRequest.amount
+        };
+        const fees = await comms.axiosPOST(`https://api.transledger.io/feeserver/fees`, reqBody, { headers: { apicode: "340f202c-fa7b-4fdc-babf-8ddc2a9f3543" } });
+        if (isNaN(fees.incomeFee) || isNaN(fees.networkFee)) {
+            throw { name: `${translib.logTime()} validator, saveTransferRequest: ERROR fetching fees`, statusCode: 400, message: transferRequest }
+        }
+        // Then we calculate the respective amounts
+        // sourceAmount = amount 
+        // destAmount = amount - networkFees - incomeFees
+        let bigDestAmount = (new bigNumber(amount)).minus(fees.incomeFee).minus(fees.networkFee).toString();
+        const sourceAmount = translib.convertAmountToInteger(transferRequest.amount, transferRequest.ticker);
+        const destAmount = translib.convertAmountToInteger(bigDestAmount, transferRequest.ticker);
+
         const sourceAddress = (sourceNetwork == "TETH" || sourceNetwork == "ETH") ? transferRequest.sourceAddress.toLowerCase() : transferRequest.sourceAddress;
         const destinationAddress = (destNetwork == "TETH" || destNetwork == "ETH") ? transferRequest.destinationAddress.toLowerCase() : transferRequest.destinationAddress;
         if (sourceNetwork == "TETH" || sourceNetwork == "ETH") {
@@ -124,8 +146,8 @@ class Validator {
         } else {
             var from = (transferRequest.from != "" && transferRequest.from != "none") ? transferRequest.from : "0";
         }
-        const sourceKey = `${sourceNetwork}:${sourceAddress.toUpperCase()}:${from.toUpperCase()}:${amount}:${transferRequest.ticker}`;
-        const destKey = `${destNetwork}:${destinationAddress.toUpperCase()}:0:${amount}:${transferRequest.ticker}`;
+        const sourceKey = `${sourceNetwork}:${sourceAddress.toUpperCase()}:${from.toUpperCase()}:${sourceAmount}:${transferRequest.ticker}`;
+        const destKey = `${destNetwork}:${destinationAddress.toUpperCase()}:0:${destAmount}:${transferRequest.ticker}`;
 
         try {
             const ssElement = workInProgress.findIndex(element => element.sourceKey === sourceKey);
@@ -137,9 +159,9 @@ class Validator {
 
             //Check that the request does not possess a duplicate key or TRID before doing anything
             if ((ssElement < 0) && (sdElement < 0) && (ddElement < 0) && (dsElement < 0) && (tridElement < 0)) {
-                return true
+                return { status: true, fees: fees }
             } else {
-                return false
+                return { status: false, fees: fees }
             }
         } catch (err) {
             responseObj.success = false;
@@ -155,6 +177,7 @@ class Validator {
         } else { return false }
     }
 
+    //Redundant, if it matched previously, that means the amounts matched too 
     //TO DO: Add additionnal tests (check amounts) when unambiguous destination
     //Use bignumber for decimals? Integrate fees?
     auditRequest(request) {
@@ -211,16 +234,29 @@ class Validator {
         let element = workInProgress.findIndex(element => element.sourceKey === key);
         if (element >= 0) {
             console.log(`${translib.logTime()} [validator:processEvent] Received source transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
+            let transferObj = await Transfer.findOne({ "transferRequest.transactionID": workInProgress[element].transferRequest.transactionID });
             if (workInProgress[element].sourceTxHash === "") {
                 workInProgress[element].sourceTxHash = eventObj.txHash;
                 workInProgress[element].sourceAmount = eventObj.addresses[0].amount;
                 workInProgress[element].sourceMessageID = eventObj.messageID;
+                if (this.withMongo) {
+                    transferObj["sourceTxHash"] = eventObj.txHash;
+                    transferObj["sourceAmount"] = eventObj.addresses[0].amount;
+                    transferObj["sourceMessageID"] = eventObj.messageID;
+                }
             }
             if (eventObj.nbConf < workInProgress[element].sourceNbConf) {
                 throw { name: "Validator: processEvent", message: "sourceNbConf decreased!" }
             }
             workInProgress[element].sourceNbConf = eventObj.nbConf;
+            if (this.withMongo) {
+                transferObj["sourceNbConf"] = eventObj.nbConf;
+                const transfer = new Transfer(transferObj);
+                await transfer.save();
+            }
+
             requestFinished = this.checkRequestComplete(workInProgress[element]);
+
             this._debug ? console.log(`${translib.logTime()} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
             if (requestFinished) {
                 let requestAudited = this.auditRequest(workInProgress[element]);
@@ -243,15 +279,26 @@ class Validator {
             element = workInProgress.findIndex(element => element.destKey === key);
             if (element >= 0) {
                 console.log(`${translib.logTime()} [validator:processEvent] Received a destination transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
+                let transferObj = await Transfer.findOne({ "transferRequest.transactionID": workInProgress[element].transferRequest.transactionID });
                 if (workInProgress[element].destinationTxHash === "") {
                     workInProgress[element].destinationTxHash = eventObj.txHash;
                     workInProgress[element].destinationAmount = eventObj.addresses[0].amount.toString();
                     workInProgress[element].destinationMessageID = eventObj.messageID;
+                    if (this.withMongo) {
+                        transferObj["destinationTxHash"] = eventObj.txHash;
+                        transferObj["destinationAmount"] = eventObj.addresses[0].amount;
+                        transferObj["destinationMessageID"] = eventObj.messageID;
+                    }
                 }
                 if (eventObj.nbConf < workInProgress[element].destinationNbConf) {
                     throw { name: "Validator: processEvent", message: "destinationNbConf decreased!" }
                 }
                 workInProgress[element].destinationNbConf = eventObj.nbConf;
+                if (this.withMongo) {
+                    transferObj["destinationNbConf"] = eventObj.nbConf;
+                    const transfer = new Transfer(transferObj);
+                    await transfer.save();
+                }
                 requestFinished = this.checkRequestComplete(workInProgress[element]);
                 this._debug ? console.log(`${translib.logTime()} [validator:processEvent] Request ${workInProgress[element].transferRequest.transactionID} finished? ${requestFinished}`) : null;
                 if (requestFinished) {
@@ -292,7 +339,7 @@ class Validator {
         }
     }
 
-    async checkAddress(network, address, currency){
+    async checkAddress(network, address, currency) {
         // Check if address is valid. The criteria are:
         // For UTXO + ETH: formatted correctly
         // For XLM: existence and does it trust the valid token:issuer
@@ -305,6 +352,6 @@ class Validator {
 
 module.exports = {
     validator: Validator,
-    nodeID : this.nodeId,
+    nodeID: this.nodeId,
     eventEmitter: eventEmitter
 };
