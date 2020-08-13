@@ -130,7 +130,7 @@ class Validator {
             amount: transferRequest.amount
         };
         let url = (this.testnet) ? `https://testapi.transledger.io/feeserver/fees` : `https://api.transledger.io/feeserver/fees` ;
-        console.log(`Getting fees from : ${url}, for: ${JSON.stringify(reqBody)}`);
+        // console.log(`Getting fees from : ${url}, for: ${JSON.stringify(reqBody)}`);
         const fees = await comms.axiosPOST(url, reqBody, { headers: { apicode: "340f202c-fa7b-4fdc-babf-8ddc2a9f3543" } });
         if (isNaN(fees.incomeFee) || isNaN(fees.networkFee)) {
             throw { name: `${translib.logTime()} validator, saveTransferRequest: ERROR fetching fees`, statusCode: 400, message: transferRequest }
