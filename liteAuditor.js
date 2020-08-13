@@ -144,7 +144,7 @@ class liteAuditor {
             // }
         } else {
             console.log(`${translib.logTime()} [liteAuditor:processRequest] TR already accounted for in workInProgress`);
-            response.status = 400;
+            response.status = 429;
             response.message = `${translib.logTime()} Transfer Request already in workInProgress`;
         }
         return response;

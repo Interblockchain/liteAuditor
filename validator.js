@@ -231,7 +231,19 @@ class Validator {
         }
         let key = `${eventObj.network.toUpperCase()}:${address.toUpperCase()}:${from.toUpperCase()}:${amount}:${eventObj.ticker}`;
         //console.log("Key source: " + key);
-        let element = workInProgress.findIndex(element => element.sourceKey === key);
+        // let element = workInProgress.findIndex(element => element.sourceKey === key);
+        let element = workInProgress.findIndex(element => {
+            let initTest = element.transferRequest.sourceNetwork.toUpperCase() == eventObj.network.toUpperCase() &&
+                element.transferRequest.sourceAddress.toUpperCase() == address.toUpperCase() &&
+                element.transferRequest.from.toUpperCase() == from.toUpperCase() &&
+                element.transferRequest.ticker.toUpperCase() == eventObj.ticker;
+            if(initTest) {
+                let diff = Math.abs(parseInt(amount) - parseInt(translib.convertAmountToInteger(element.transferRequest.amount, element.transferRequest.ticker)));
+                return diff <= parseInt(amount)*0.01   // 1% fluctuations
+            } else {
+                return false;
+            }
+        });
         if (element >= 0) {
             console.log(`${translib.logTime()} [validator:processEvent] Received source transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
             let transferObj = await Transfer.findOne({ "transferRequest.transactionID": workInProgress[element].transferRequest.transactionID });
@@ -276,7 +288,18 @@ class Validator {
         } else {
             key = `${eventObj.network.toUpperCase()}:${address.toUpperCase()}:0:${amount}:${eventObj.ticker}`;
             //console.log("Key dest: " + key);
-            element = workInProgress.findIndex(element => element.destKey === key);
+            // element = workInProgress.findIndex(element => element.destKey === key);
+            element = workInProgress.findIndex(element => {
+                let initTest = element.transferRequest.destinationNetwork.toUpperCase() == eventObj.network.toUpperCase() &&
+                    element.transferRequest.destinationAddress.toUpperCase() == address.toUpperCase() &&
+                    element.transferRequest.ticker.toUpperCase() == eventObj.ticker;
+                if(initTest) {
+                    let diff = Math.abs(parseInt(amount) - parseInt(translib.convertAmountToInteger(element.transferRequest.amount, element.transferRequest.ticker)));
+                    return diff <= parseInt(amount)*0.01   // 1% fluctuations
+                } else {
+                    return false;
+                }
+            });
             if (element >= 0) {
                 console.log(`${translib.logTime()} [validator:processEvent] Received a destination transaction for TRID: ${workInProgress[element].transferRequest.transactionID}`);
                 let transferObj = await Transfer.findOne({ "transferRequest.transactionID": workInProgress[element].transferRequest.transactionID });
