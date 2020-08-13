@@ -43,8 +43,9 @@ require("./config/confTable");
 
 class Validator {
     constructor(params) {
-        this.withMongo = false;
+        this.testnet = (params.testnet) ? params.testnet : true;
         this._debug = params.debug ? params.debug : false;
+        this.withMongo = false;
         if (params.mongoHost) {
             this.withMongo = true
             this.mongoDB = new MongoDB(params.mongoUser, params.mongoPsw, params.mongoHost, params.mongoDB, params.mongoPort);
@@ -128,7 +129,9 @@ class Validator {
             provider: "moveToken",
             amount: transferRequest.amount
         };
-        const fees = await comms.axiosPOST(`https://api.transledger.io/feeserver/fees`, reqBody, { headers: { apicode: "340f202c-fa7b-4fdc-babf-8ddc2a9f3543" } });
+        let url = (this.testnet) ? `https://testapi.transledger.io/feeserver/fees` : `https://api.transledger.io/feeserver/fees` ;
+        console.log(`Getting fees from : ${url}, for: ${JSON.stringify(reqBody)}`);
+        const fees = await comms.axiosPOST(url, reqBody, { headers: { apicode: "340f202c-fa7b-4fdc-babf-8ddc2a9f3543" } });
         if (isNaN(fees.incomeFee) || isNaN(fees.networkFee)) {
             throw { name: `${translib.logTime()} validator, saveTransferRequest: ERROR fetching fees`, statusCode: 400, message: transferRequest }
         }
