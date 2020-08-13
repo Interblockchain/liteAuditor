@@ -297,7 +297,8 @@ class Validator {
                     element.transferRequest.destinationAddress.toUpperCase() == address.toUpperCase() &&
                     element.transferRequest.ticker.toUpperCase() == eventObj.ticker;
                 if(initTest) {
-                    let diff = Math.abs(parseInt(amount) - parseInt(translib.convertAmountToInteger(element.transferRequest.amount, element.transferRequest.ticker)));
+                    let bigDestAmount = (new bigNumber(element.transferRequest.amount)).minus(element.incomeFees).minus(element.networkFees).toString();
+                    let diff = Math.abs(parseInt(amount) - parseInt(translib.convertAmountToInteger(bigDestAmount, element.transferRequest.ticker)));
                     return diff <= parseInt(amount)*0.01   // 1% fluctuations
                 } else {
                     return false;
