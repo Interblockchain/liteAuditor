@@ -236,9 +236,10 @@ class Validator {
         //console.log("Key source: " + key);
         // let element = workInProgress.findIndex(element => element.sourceKey === key);
         let element = workInProgress.findIndex(element => {
+            let storedFrom = ( !element.transferRequest.from || element.transferRequest.from.toUpperCase() == "NONE") ? "0" : element.transferRequest.from.toUpperCase();
             let initTest = element.transferRequest.sourceNetwork.toUpperCase() == eventObj.network.toUpperCase() &&
                 element.transferRequest.sourceAddress.toUpperCase() == address.toUpperCase() &&
-                element.transferRequest.from.toUpperCase() == from.toUpperCase() &&
+                storedFrom == from.toUpperCase() &&
                 element.transferRequest.ticker.toUpperCase() == eventObj.ticker;
             if(initTest) {
                 let diff = Math.abs(parseInt(amount) - parseInt(translib.convertAmountToInteger(element.transferRequest.amount, element.transferRequest.ticker)));
