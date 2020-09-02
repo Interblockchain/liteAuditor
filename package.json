@@ -1,6 +1,6 @@
 {
   "name": "liteauditor",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "main": "liteAuditor.js",
   "author": {
     "name": "Paul Boulanger"
@@ -11,14 +11,14 @@
   },
   "dependencies": {
     "bignumber.js": "^9.0.0",
-    "events": "^3.0.0",
+    "events": "^3.2.0",
     "fs": "0.0.1-security",
-    "jsonschema": "^1.2.5",
-    "mongoose": "^5.9.16",
+    "jsonschema": "^1.2.6",
+    "mongoose": "^5.10.2",
     "mongoose-paginate": "^5.0.3",
-    "ntrnetwork": "^2.8.48",
+    "ntrnetwork": "^2.8.51",
     "path": "^0.12.7",
-    "translib": "^1.0.28",
+    "translib": "^1.0.31",
     "wsmanagement": "^1.0.7"
   }
 }
