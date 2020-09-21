@@ -38,13 +38,14 @@ const bigNumber = require('bignumber.js');
 const MongoDB = require("./config/mongoDB");
 const Transfer = require('./models/transfer');
 const mongoose = require('mongoose');
+const { type } = require("os");
 
 require("./config/confTable");
 
 class Validator {
     constructor(params) {
-        this.testnet = (params.testnet) ? params.testnet : true;
-        this._debug = params.debug ? params.debug : false;
+        this.testnet = (params.testnet !== 'undefined') ? params.testnet : true;
+        this._debug = (params.debug !== 'undefined') ? params.debug : false;
         this.withMongo = false;
         if (params.mongoHost) {
             this.withMongo = true

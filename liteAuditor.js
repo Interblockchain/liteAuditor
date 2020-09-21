@@ -21,10 +21,9 @@ class liteAuditor {
         this.timedOut = (params.timedOut) ? params.timedOut : [];
         this.completedTR = (params.completedTR) ? params.completedTR : [];
         this.broadcaster = (params.ntrchannel) ? new Broadcaster(params.ntrchannel) : null;
-        this._debug = (params.debug) ? params.debug : false;
+        this._debug = (params.debug !== 'undefined') ? params.debug : false;
         this.validator = new Validator(params);
         this.garbageCollector = new GarbageCollector(auditEvent, this.validator);
-
     }
 
     auditNetwork() {
